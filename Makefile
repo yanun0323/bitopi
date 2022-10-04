@@ -12,7 +12,7 @@ build:	## Build backend Docker image
 
 docker.run:
 	docker run -d \
-	-p 8080:8080 \
+	-p 8001:8001 \
 	--name website website
 
 docker.up:
