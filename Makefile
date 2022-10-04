@@ -7,6 +7,7 @@ run:
 
 build:	## Build backend Docker image
 	docker build . \
+		-t bitopi \
 		--no-cache \
 
 docker.run:
