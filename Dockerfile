@@ -8,6 +8,7 @@ RUN go build -o bitopi ./main.go
 # final stage
 FROM alpine:3.15
 
+COPY --from=build /go/build/bitopi /var/application/bitopi
 COPY --from=build /go/build/config /var/application/config
 
 EXPOSE 8001
