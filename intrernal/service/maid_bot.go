@@ -14,7 +14,6 @@ import (
 )
 
 const (
-	_TokenUrl            = "https://raw.githubusercontent.com/yanun0323/memo/main/token"
 	_DefaultStartTimeStr = "20220925"
 )
 
