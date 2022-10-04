@@ -25,5 +25,5 @@ func Run(l *log.Logger) {
 	e.POST("/backend-maid", svc.MaidBotHandler, m...)
 	e.POST("/backend-maid/command", svc.MaidCommandHandler, m...)
 
-	e.Start(":8080")
+	e.Start(":80")
 }
