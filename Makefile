@@ -7,19 +7,19 @@ run:
 
 build:	## Build backend Docker image
 	docker build . \
-		-t website \
+		-t bitopi \
 		--no-cache \
 
 docker.run:
 	docker run -d \
 	-p 8001:8001 \
-	--name website website
+	--name bitopi bitopi
 
 docker.up:
-	docker container start website
+	docker container start bitopi
 
 docker.down:
-	docker container stop website
+	docker container stop bitopi
 
 docker.rm:
-	docker rm -f website
+	docker rm -f bitopi
