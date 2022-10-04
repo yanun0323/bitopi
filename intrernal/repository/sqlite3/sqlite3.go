@@ -128,9 +128,7 @@ func (dao SqlDao) GetStartDate() (time.Time, error) {
 	if err != nil {
 		return time.Now(), err
 	}
-	if elem.ID == 0 {
-		return time.Now(), errors.New("empty ID")
-	}
+
 	return elem.StartTime, nil
 }
 
@@ -138,16 +136,16 @@ func (dao SqlDao) UpdateStartDate(t time.Time) error {
 	return dao.db.Transaction(func(tx *gorm.DB) error {
 		elem := model.Setting{}
 		err := tx.First(&elem).Error
-		if err != nil {
-			return err
-		}
-
-		if elem.ID == 0 {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			err := tx.Create(&elem).Error
 			if err != nil {
 				return err
 			}
 			return nil
+		}
+
+		if err != nil {
+			return err
 		}
 
 		elem.StartTime = t
