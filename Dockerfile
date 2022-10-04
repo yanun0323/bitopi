@@ -1,8 +1,10 @@
 # build stage
-FROM golang:1.19 AS build
+FROM golang:1.19-alpine AS build
 
 ADD . /go/build
 WORKDIR /go/build
+# install gcc
+RUN apk add build-base 
 RUN go build -o bitopi ./main.go
 
 # final stage
