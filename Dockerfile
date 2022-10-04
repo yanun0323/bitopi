@@ -10,7 +10,7 @@ FROM alpine:3.15
 
 COPY --from=build /go/build/config /var/application/config
 
-EXPOSE 80
+EXPOSE 8001
 
 WORKDIR /var/application
 CMD [ "./bitopi" ]
