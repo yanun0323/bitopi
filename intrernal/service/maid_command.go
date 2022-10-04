@@ -13,7 +13,8 @@ import (
 )
 
 const (
-	_RootAdmin = "<@U032TJB1PE1>"
+	_RootAdmin        = "<@U032TJB1PE1>"
+	_CommandChannelID = "C01JS6YTHPE"
 )
 
 func (svc *Service) MaidCommandHandler(c echo.Context) error {
@@ -30,6 +31,10 @@ func (svc *Service) MaidCommandHandler(c echo.Context) error {
 		return SendCommandReply(callbackUrl, fmt.Sprintf("validate admin error, %s", err))
 	}
 
+	if payload.Get("channel_id") != _CommandChannelID {
+		return SendCommandReply(callbackUrl, "*指令只能在 <#"+_CommandChannelID+"> 使用*")
+	}
+
 	if caller != _RootAdmin && !valid {
 		SendCommandReply(callbackUrl, "用戶沒有執行指令權限")
 	}
@@ -42,7 +47,7 @@ func (svc *Service) MaidCommandHandler(c echo.Context) error {
 	cmd := text[0]
 	switch cmd {
 	case "help":
-		return SendCommandReply(callbackUrl, "*所有指令都只能在 <#C01JS6YTHPE> 使用*\n\n`/maid help` 顯示所有指令\n`/maid admin` 顯示所有管理員 ( 可執行指令人員 )\n`/maid admin {User}` 新增/刪除 管理員\n`/maid today` 回傳今日值班女僕\n`/maid list` 顯示女僕清單及起始計算日期\n`/maid set` 重設女僕清單及起始計算日期(7天換一次)\n```/maid set {UserA} {UserB} {UserC} ... {StartDate} \n/maid set @Yanun @Vic @Kai @Victor @Howard 2022-03-23```")
+		return SendCommandReply(callbackUrl, "*所有指令都只能在 <#"+_CommandChannelID+"> 使用*\n\n`/maid help` 顯示所有指令\n`/maid admin` 顯示所有管理員 ( 可執行指令人員 )\n`/maid admin {User}` 新增/刪除 管理員\n`/maid today` 回傳今日值班女僕\n`/maid list` 顯示女僕清單及起始計算日期\n`/maid set` 重設女僕清單及起始計算日期(7天換一次)\n```/maid set {UserA} {UserB} {UserC} ... {StartDate} \n/maid set @Yanun @Vic @Kai @Victor @Howard 2022-03-23```")
 	case "list":
 		maids := svc.listMaid()
 		t := svc.getStartDate()
@@ -62,7 +67,7 @@ func (svc *Service) MaidCommandHandler(c echo.Context) error {
 			return SendCommandReply(callbackUrl, fmt.Sprintf("set maid error, %s", err))
 		}
 
-		channel := payload.Get("channel_id")
+		channel := _CommandChannelID
 		maids := svc.listMaid()
 		msg := caller + " 已重新設置女僕順序\n" + strings.Join(maids, " ") + " " + svc.getStartDate().Format("2006-01-02")
 		sendChatPost(channel, msg)
