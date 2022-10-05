@@ -96,14 +96,9 @@ func (svc *Service) getMaid() string {
 }
 
 func (svc *Service) getStartDate() time.Time {
-	locale, err := time.LoadLocation("Asia/Taipei")
-	if err != nil {
-		locale = nil
-	}
-
 	t, err := svc.repo.GetStartDate()
 	if err != nil {
-		t, _ = time.ParseInLocation("20060102", DefaultStartTimeStr, locale)
+		t, _ = time.Parse("20060102", DefaultStartTimeStr)
 	}
 	return t
 }
