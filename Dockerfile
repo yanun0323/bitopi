@@ -5,7 +5,10 @@ ADD . /go/build
 WORKDIR /go/build
 # install gcc
 RUN apk add build-base 
-RUN go build -o bitopi ./main.go
+# install timezone data
+RUN apk add tzdata
+
+RUN ZONEINFO=/usr/share/timezone go build -o bitopi ./main.go
 
 # final stage
 FROM alpine:3.15
