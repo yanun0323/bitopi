@@ -32,9 +32,9 @@ func (s *Service) MaidCommandHandler(c echo.Context) error {
 	callbackUrl := util.NewUrl(payload.Get("response_url"))
 	userID := payload.Get("user_id")
 	s.l.Debug("user: ", userID, ", from channel: ", payload.Get("channel_id"))
-	directChannelID := s.GetDirectChannelID(userID)
+	directChannelID := s.getDirectChannelID(userID)
 	if len(directChannelID) == 0 {
-		return SendCommandReply(callbackUrl, "未知的錯誤，請再試一次")
+		return SendCommandReply(callbackUrl, "找不到私人訊息頻道")
 	}
 	fromChannelID := payload.Get("channel_id")
 	s.l.Debugf("from channel ID: %s\nto channel ID: %s", fromChannelID, directChannelID)
@@ -45,11 +45,7 @@ func (s *Service) MaidCommandHandler(c echo.Context) error {
 	caller := "<@" + userID + ">"
 	valid, err := s.repo.IsAdmin(caller)
 	if err != nil {
-		return SendCommandReply(callbackUrl, fmt.Sprintf("validate admin error, %s", err))
-	}
-
-	if caller != _RootAdmin && !valid {
-		return SendCommandReply(callbackUrl, "用戶沒有執行指令權限")
+		return SendCommandReply(callbackUrl, fmt.Sprintf("無法驗證管理員, %s", err))
 	}
 
 	text := SplitText(payload.Get("text"))
@@ -66,6 +62,9 @@ func (s *Service) MaidCommandHandler(c echo.Context) error {
 		t := s.getStartDate()
 		return SendCommandReply(callbackUrl, "\n起算日期: "+t.Format("2006-01-02")+"\n女僕順序: "+strings.Join(maids, " "))
 	case "set":
+		if caller != _RootAdmin && !valid {
+			return SendNoPermissionReply(s, callbackUrl)
+		}
 		users, message := parseContent(text[1:])
 		t, err := time.Parse("2006-01-02", message[0])
 		if err != nil {
@@ -87,24 +86,31 @@ func (s *Service) MaidCommandHandler(c echo.Context) error {
 	case "today":
 		return SendCommandReply(callbackUrl, "今日女僕： "+s.getMaid())
 	case "admin":
+		if caller != _RootAdmin && !valid {
+			return SendNoPermissionReply(s, callbackUrl)
+		}
 		if len(text) > 1 {
 			users, _ := parseContent(text[1:])
 			for i := range users {
 				s.repo.ReverseAdmin(users[i])
 			}
 		}
-		admins, err := s.repo.ListAdmin()
-		if err != nil {
-			return ok(c, err)
-		}
-		res := strings.Join(admins, " ")
-		if len(res) == 0 {
-			res = "empty"
-		}
-		return SendCommandReply(callbackUrl, "*Admin list*\n"+res)
+		return SendCommandReply(callbackUrl, "*Admin list*\n"+s.getAdmin())
 	default:
 		return SendCommandReply(callbackUrl, fmt.Sprintf("找不到指令 `%s`，執行 `/maid help` 取得更多資訊", cmd))
 	}
+}
+
+func (s *Service) getAdmin() string {
+	admins, err := s.repo.ListAdmin()
+	if err != nil {
+		return _RootAdmin
+	}
+	res := strings.Join(admins, " ")
+	if len(res) == 0 {
+		res = _RootAdmin
+	}
+	return res
 }
 
 func sendChatPost(channel, text string) {
@@ -131,6 +137,10 @@ func SendCommandReply(url util.Url, msg string) error {
 	l.Debug("code: ", code)
 	l.Debug("res: ", string(res))
 	return nil
+}
+
+func SendNoPermissionReply(s *Service, callbackUrl util.Url) error {
+	return SendCommandReply(callbackUrl, "用戶沒有執行此指令權限, 欲開啟權限請找管理員"+s.getAdmin())
 }
 
 func SplitText(text string) []string {
@@ -167,7 +177,7 @@ func parseContent(content []string) (users []string, message []string) {
 	return
 }
 
-func (s *Service) GetDirectChannelID(userID string) string {
+func (s *Service) getDirectChannelID(userID string) string {
 	url := "https://slack.com/api/conversations.open?users=" + userID
 	req, err := http.NewRequest(http.MethodPost, url, nil)
 	if err != nil {
