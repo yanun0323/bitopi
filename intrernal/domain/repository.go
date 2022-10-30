@@ -2,7 +2,7 @@ package domain
 
 import "time"
 
-type IRepository interface {
+type Repository interface {
 	ListMaid() ([]string, error)
 	UpdateMaidList(list []string) error
 

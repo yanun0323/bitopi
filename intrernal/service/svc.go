@@ -11,7 +11,7 @@ import (
 )
 
 type Service struct {
-	repo domain.IRepository
+	repo domain.Repository
 	l    *logs.Logger
 }
 

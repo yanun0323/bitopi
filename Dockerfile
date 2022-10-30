@@ -4,7 +4,7 @@ FROM golang:1.19-alpine AS build
 ADD . /go/build
 WORKDIR /go/build
 # install gcc
-RUN apk add build-base 
+RUN apk add build-base
 # install timezone data
 RUN apk add tzdata
 

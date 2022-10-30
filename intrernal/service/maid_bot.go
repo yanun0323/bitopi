@@ -24,6 +24,7 @@ var (
 		"<@U031SSN3QDT>", /* Kai */
 		"<@U01QCKG7529>", /* Vic */
 		"<@U036V8WPXDY>", /* Victor */
+		"<@U03MWAJDBV3>", /* Luki */
 	}
 )
 
@@ -52,10 +53,10 @@ func (s *Service) MaidBotHandler(c echo.Context) error {
 		slackEventApi := util.SlackEventAPI{}
 		err := json.NewDecoder(c.Request().Body).Decode(&slackEventApi)
 		if err != nil && err != io.EOF {
-			fmt.Printf("decode json, %s\n", err)
+			s.l.Errorf("decode json, %s\n", err)
 			return ok(c)
 		}
-		fmt.Printf("%+v\n", slackEventApi)
+		s.l.Debugf("%+v\n", slackEventApi)
 		maid := s.getMaid()
 
 		bot := util.NewSlackNotifier(viper.GetString("token.maid"))
@@ -79,7 +80,6 @@ func (s *Service) MaidBotHandler(c echo.Context) error {
 }
 
 func (s *Service) getMaid() string {
-
 	start := s.getStartDate()
 	now := time.Now()
 	s.l.Debug("time start: ", start.Format("20060102 15:04:05 MST"))
@@ -98,6 +98,7 @@ func (s *Service) getMaid() string {
 func (s *Service) getStartDate() time.Time {
 	t, err := s.repo.GetStartDate()
 	if err != nil {
+		s.l.Errorf("get start date error, %+v", err)
 		t, _ = time.Parse("20060102", MaidDefaultStartTimeStr)
 	}
 	return t
@@ -106,6 +107,7 @@ func (s *Service) getStartDate() time.Time {
 func (s *Service) listMaid() []string {
 	maidList, err := s.repo.ListMaid()
 	if err != nil || len(maidList) == 0 {
+		s.l.Errorf("list maid error, %+v", err)
 		maidList = _MaidList
 	}
 	return maidList

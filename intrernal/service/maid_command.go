@@ -1,9 +1,13 @@
 package service
 
 import (
+	"bitopi/intrernal/model"
 	"bitopi/intrernal/util"
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"strings"
 	"time"
 
@@ -26,14 +30,22 @@ func (s *Service) MaidCommandHandler(c echo.Context) error {
 
 	payload := c.Request().PostForm
 	callbackUrl := util.NewUrl(payload.Get("response_url"))
-	caller := "<@" + payload.Get("user_id") + ">"
+	userID := payload.Get("user_id")
+	s.l.Debug("user: ", userID, ", from channel: ", payload.Get("channel_id"))
+	directChannelID := s.GetDirectChannelID(userID)
+	if len(directChannelID) == 0 {
+		return SendCommandReply(callbackUrl, "未知的錯誤，請再試一次")
+	}
+	fromChannelID := payload.Get("channel_id")
+	s.l.Debugf("from channel ID: %s\nto channel ID: %s", fromChannelID, directChannelID)
+	if directChannelID != fromChannelID {
+		return SendCommandReply(callbackUrl, "指令只能在應用程式私訊使用，請到應用程式對話輸入指令")
+	}
+
+	caller := "<@" + userID + ">"
 	valid, err := s.repo.IsAdmin(caller)
 	if err != nil {
 		return SendCommandReply(callbackUrl, fmt.Sprintf("validate admin error, %s", err))
-	}
-
-	if payload.Get("channel_id") != _CommandChannelID {
-		return SendCommandReply(callbackUrl, "*指令只能在 <#"+_CommandChannelID+"> 使用*")
 	}
 
 	if caller != _RootAdmin && !valid {
@@ -52,7 +64,7 @@ func (s *Service) MaidCommandHandler(c echo.Context) error {
 	case "list":
 		maids := s.listMaid()
 		t := s.getStartDate()
-		return SendCommandReply(callbackUrl, strings.Join(maids, " ")+" "+t.Format("2006-01-02"))
+		return SendCommandReply(callbackUrl, "\n起算日期: "+t.Format("2006-01-02")+"\n女僕順序: "+strings.Join(maids, " "))
 	case "set":
 		users, message := parseContent(text[1:])
 		t, err := time.Parse("2006-01-02", message[0])
@@ -67,10 +79,9 @@ func (s *Service) MaidCommandHandler(c echo.Context) error {
 		if err := s.repo.UpdateMaidList(users); err != nil {
 			return SendCommandReply(callbackUrl, fmt.Sprintf("set maid error, %s", err))
 		}
-
 		channel := _CommandChannelID
 		maids := s.listMaid()
-		msg := caller + " 已重新設置女僕順序\n" + strings.Join(maids, " ") + " " + s.getStartDate().Format("2006-01-02")
+		msg := caller + " 已重新設置女僕順序\n起算日期: " + s.getStartDate().Format("2006-01-02") + "\n女僕順序: " + strings.Join(maids, " ")
 		sendChatPost(channel, msg)
 		return SendCommandReply(callbackUrl, "set succeed")
 	case "today":
@@ -154,4 +165,41 @@ func parseContent(content []string) (users []string, message []string) {
 		message = append(message, content[i])
 	}
 	return
+}
+
+func (s *Service) GetDirectChannelID(userID string) string {
+	url := "https://slack.com/api/conversations.open?users=" + userID
+	req, err := http.NewRequest(http.MethodPost, url, nil)
+	if err != nil {
+		s.l.Errorf("create request error, %+v", err)
+		return ""
+	}
+
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+	req.Header.Set("Authorization", "Bearer "+viper.GetString("token.maid")) //"Bearer "+viper.GetString("token.maid")
+	s.l.Debugln(req.URL.String())
+	client := http.DefaultClient
+	res, err := client.Do(req)
+	if err != nil {
+		s.l.Errorf("send request error, %+v", err)
+		return ""
+	}
+
+	buff, err := io.ReadAll(res.Body)
+	if err != nil {
+		s.l.Errorf("read response error, %+v", err)
+		return ""
+	}
+
+	c := &model.DirectChannel{}
+	if err := json.Unmarshal(buff, c); err != nil {
+		s.l.Errorf("unmarshal json response error, %+v", err)
+		return ""
+	}
+	if !c.OK {
+		s.l.Errorf("invalid request, response:\n%s", string(buff))
+		return ""
+	}
+	s.l.Debug("success get direct channel id " + c.Channel.ID)
+	return c.Channel.ID
 }

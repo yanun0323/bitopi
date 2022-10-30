@@ -11,7 +11,7 @@ type Repo struct {
 	sqlite3.SqlDao
 }
 
-func NewRepo() (domain.IRepository, error) {
+func NewRepo() (domain.Repository, error) {
 	sqlDao, err := sqlite3.New()
 	if err != nil {
 		return nil, err

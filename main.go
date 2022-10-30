@@ -4,6 +4,7 @@ import (
 	"bitopi/intrernal/app"
 	"bitopi/pkg/config"
 
+	"github.com/spf13/viper"
 	"github.com/yanun0323/pkg/logs"
 )
 
@@ -12,11 +13,10 @@ var (
 )
 
 func main() {
-	l = logs.New("bito_pi", 2)
 	if err := config.Init("config"); err != nil {
-		l.Fatalf("init config failed %s", err)
-		return
+		panic("init config failed")
 	}
+	l = logs.New("bito_pi", uint8(viper.GetInt("log.level")))
 
 	app.Run(l)
 }
