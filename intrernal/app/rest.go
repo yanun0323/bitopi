@@ -2,14 +2,14 @@ package app
 
 import (
 	"bitopi/intrernal/service"
-	"log"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/yanun0323/pkg/logs"
 )
 
-func Run(l *log.Logger) {
+func Run(l *logs.Logger) {
 
 	e := echo.New()
 	e.Logger.SetLevel(4)
@@ -29,6 +29,7 @@ func Run(l *log.Logger) {
 			Msg: "OK",
 		})
 	})
+	e.POST("/devops-bro", svc.DevopsBotHandler, m...)
 	e.POST("/backend-maid", svc.MaidBotHandler, m...)
 	e.POST("/backend-maid/command", svc.MaidCommandHandler, m...)
 

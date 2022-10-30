@@ -3,15 +3,16 @@ package main
 import (
 	"bitopi/intrernal/app"
 	"bitopi/pkg/config"
-	"log"
+
+	"github.com/yanun0323/pkg/logs"
 )
 
 var (
-	l *log.Logger
+	l *logs.Logger
 )
 
 func main() {
-	l = log.Default()
+	l = logs.New("bito_pi", 2)
 	if err := config.Init("config"); err != nil {
 		l.Fatalf("init config failed %s", err)
 		return

@@ -10,6 +10,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
+	"github.com/yanun0323/pkg/logs"
 )
 
 const (
@@ -17,7 +18,7 @@ const (
 	_CommandChannelID = "C01JS6YTHPE"
 )
 
-func (svc *Service) MaidCommandHandler(c echo.Context) error {
+func (s *Service) MaidCommandHandler(c echo.Context) error {
 	if err := c.Request().ParseForm(); err != nil {
 		fmt.Printf("parse form, %+v\n", errors.WithStack(err))
 		return ok(c, "internal error")
@@ -26,7 +27,7 @@ func (svc *Service) MaidCommandHandler(c echo.Context) error {
 	payload := c.Request().PostForm
 	callbackUrl := util.NewUrl(payload.Get("response_url"))
 	caller := "<@" + payload.Get("user_id") + ">"
-	valid, err := svc.repo.IsAdmin(caller)
+	valid, err := s.repo.IsAdmin(caller)
 	if err != nil {
 		return SendCommandReply(callbackUrl, fmt.Sprintf("validate admin error, %s", err))
 	}
@@ -36,7 +37,7 @@ func (svc *Service) MaidCommandHandler(c echo.Context) error {
 	}
 
 	if caller != _RootAdmin && !valid {
-		SendCommandReply(callbackUrl, "用戶沒有執行指令權限")
+		return SendCommandReply(callbackUrl, "用戶沒有執行指令權限")
 	}
 
 	text := SplitText(payload.Get("text"))
@@ -49,8 +50,8 @@ func (svc *Service) MaidCommandHandler(c echo.Context) error {
 	case "help":
 		return SendCommandReply(callbackUrl, "*所有指令都只能在 <#"+_CommandChannelID+"> 使用*\n\n`/maid help` 顯示所有指令\n`/maid admin` 顯示所有管理員 ( 可執行指令人員 )\n`/maid admin {User}` 新增/刪除 管理員\n`/maid today` 回傳今日值班女僕\n`/maid list` 顯示女僕清單及起始計算日期\n`/maid set` 重設女僕清單及起始計算日期(7天換一次)\n```/maid set {UserA} {UserB} {UserC} ... {StartDate} \n/maid set @Yanun @Vic @Kai @Victor @Howard 2022-03-23```")
 	case "list":
-		maids := svc.listMaid()
-		t := svc.getStartDate()
+		maids := s.listMaid()
+		t := s.getStartDate()
 		return SendCommandReply(callbackUrl, strings.Join(maids, " ")+" "+t.Format("2006-01-02"))
 	case "set":
 		users, message := parseContent(text[1:])
@@ -59,29 +60,29 @@ func (svc *Service) MaidCommandHandler(c echo.Context) error {
 			return SendCommandReply(callbackUrl, fmt.Sprintf("invalid time format, %s", err))
 		}
 
-		if err := svc.repo.UpdateStartDate(t); err != nil {
+		if err := s.repo.UpdateStartDate(t); err != nil {
 			return SendCommandReply(callbackUrl, fmt.Sprintf("update time error, %s", err))
 		}
 
-		if err := svc.repo.UpdateMaidList(users); err != nil {
+		if err := s.repo.UpdateMaidList(users); err != nil {
 			return SendCommandReply(callbackUrl, fmt.Sprintf("set maid error, %s", err))
 		}
 
 		channel := _CommandChannelID
-		maids := svc.listMaid()
-		msg := caller + " 已重新設置女僕順序\n" + strings.Join(maids, " ") + " " + svc.getStartDate().Format("2006-01-02")
+		maids := s.listMaid()
+		msg := caller + " 已重新設置女僕順序\n" + strings.Join(maids, " ") + " " + s.getStartDate().Format("2006-01-02")
 		sendChatPost(channel, msg)
 		return SendCommandReply(callbackUrl, "set succeed")
 	case "today":
-		return SendCommandReply(callbackUrl, "今日女僕： "+svc.getMaid())
+		return SendCommandReply(callbackUrl, "今日女僕： "+s.getMaid())
 	case "admin":
 		if len(text) > 1 {
 			users, _ := parseContent(text[1:])
 			for i := range users {
-				svc.repo.ReverseAdmin(users[i])
+				s.repo.ReverseAdmin(users[i])
 			}
 		}
-		admins, err := svc.repo.ListAdmin()
+		admins, err := s.repo.ListAdmin()
 		if err != nil {
 			return ok(c, err)
 		}
@@ -104,8 +105,9 @@ func sendChatPost(channel, text string) {
 	if err != nil {
 		fmt.Printf("bot send, %s\n", err)
 	}
-	fmt.Println("code: ", code)
-	fmt.Println("res: ", string(res))
+	l := logs.Get(context.Background())
+	l.Debug("code: ", code)
+	l.Debug("res: ", string(res))
 }
 
 func SendCommandReply(url util.Url, msg string) error {
@@ -114,8 +116,9 @@ func SendCommandReply(url util.Url, msg string) error {
 	if err != nil {
 		fmt.Printf("bot send, %s\n", err)
 	}
-	fmt.Println("code: ", code)
-	fmt.Println("res: ", string(res))
+	l := logs.Get(context.Background())
+	l.Debug("code: ", code)
+	l.Debug("res: ", string(res))
 	return nil
 }
 

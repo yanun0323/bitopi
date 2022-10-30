@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -14,20 +15,23 @@ import (
 )
 
 const (
-	MaidDefaultStartTimeStr string = "20220925"
+	DevopsDefaultStartTimeStr string = "20221023"
 )
 
+// 週數 | BitoEx | Meta |
+// 本週 |   L    | T, H |
+// 下週 |   T    | H, L |
+// 下下 |   H    | L, T |
+
 var (
-	_MaidList = []string{
-		"<@U032TJB1PE1>", /* Yanun */
-		"<@U03ECC8Q61E>", /* Howard */
-		"<@U031SSN3QDT>", /* Kai */
-		"<@U01QCKG7529>", /* Vic */
-		"<@U036V8WPXDY>", /* Victor */
+	_DevopsBroList = []string{
+		"<@U03FDTNPWBW>", /* Lawrence */
+		"<@U03RQKWLG8Z>", /* Tina */
+		"<@U01A7LEG1CZ>", /* Harlan */
 	}
 )
 
-func (s *Service) MaidBotHandler(c echo.Context) error {
+func (s *Service) DevopsBotHandler(c echo.Context) error {
 	length, err := strconv.Atoi(c.Request().Header["Content-Length"][0])
 	if err != nil {
 		return ok(c)
@@ -56,13 +60,18 @@ func (s *Service) MaidBotHandler(c echo.Context) error {
 			return ok(c)
 		}
 		fmt.Printf("%+v\n", slackEventApi)
-		maid := s.getMaid()
 
-		bot := util.NewSlackNotifier(viper.GetString("token.maid"))
+		bot := util.NewSlackNotifier(viper.GetString("token.devops"))
+
+		exBroIndex := s.getExBroIndex()
+		textPrefix := "請稍候片刻，本週猛哥/猛姐會盡快為您服務 :smiling_face_with_3_hearts:\n"
+		textRow2 := fmt.Sprintf("Bito EX/Pro: %s\n", _DevopsBroList[exBroIndex])
+		textRow3 := fmt.Sprintf("Meta: %s", s.getMetaBroStr(exBroIndex))
+
 		msg := util.SlackReplyMsg{
-			Text:        fmt.Sprintf("請稍候片刻，本週女僕 %s 會盡快為您服務 :smiling_face_with_3_hearts:", maid),
+			Text:        textPrefix + textRow2 + textRow3,
 			Channel:     slackEventApi.Event.Channel,
-			UserName:    "Backend-Maid",
+			UserName:    "Devops-Bro",
 			TimeStamp:   slackEventApi.Event.TimeStamp,
 			Attachments: make([]map[string]string, 0),
 		}
@@ -78,35 +87,33 @@ func (s *Service) MaidBotHandler(c echo.Context) error {
 	return ok(c)
 }
 
-func (s *Service) getMaid() string {
+func (s *Service) getExBroIndex() int {
 
-	start := s.getStartDate()
+	start := s.getDevopsStartDate()
 	now := time.Now()
 	s.l.Debug("time start: ", start.Format("20060102 15:04:05 MST"))
 	s.l.Debug("time now: ", now.Format("20060102 15:04:05 MST"))
 
 	interval := now.Sub(start)
-	week := (((interval.Milliseconds() / 1000 / 60) / 60) / 24) / 7
+	week := int(((interval.Milliseconds()/1000/60)/60)/24) / 7
 	s.l.Debug("week: ", week)
 
-	maidList := s.listMaid()
-
-	index := week % int64(len(maidList))
-	return maidList[index]
+	index := week % len(_DevopsBroList)
+	return int(index)
 }
 
-func (s *Service) getStartDate() time.Time {
-	t, err := s.repo.GetStartDate()
-	if err != nil {
-		t, _ = time.Parse("20060102", MaidDefaultStartTimeStr)
-	}
+func (s *Service) getDevopsStartDate() time.Time {
+	t, _ := time.Parse("20060102", DevopsDefaultStartTimeStr)
 	return t
 }
 
-func (s *Service) listMaid() []string {
-	maidList, err := s.repo.ListMaid()
-	if err != nil || len(maidList) == 0 {
-		maidList = _MaidList
+func (s *Service) getMetaBroStr(exBroIndex int) string {
+	bros := make([]string, 0, len(_DevopsBroList)-1)
+	for i := range _DevopsBroList {
+		if i == exBroIndex {
+			continue
+		}
+		bros = append(bros, _DevopsBroList[i])
 	}
-	return maidList
+	return strings.Join(bros, " ")
 }

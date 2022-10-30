@@ -3,16 +3,16 @@ package service
 import (
 	"bitopi/intrernal/domain"
 	"bitopi/intrernal/repository"
-	"fmt"
-	"log"
+	"context"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
+	"github.com/yanun0323/pkg/logs"
 )
 
 type Service struct {
 	repo domain.IRepository
-	l    *log.Logger
+	l    *logs.Logger
 }
 
 func New() (Service, error) {
@@ -22,11 +22,12 @@ func New() (Service, error) {
 	}
 	return Service{
 		repo: repo,
+		l:    logs.Get(context.Background()),
 	}, nil
 }
 
 func ok(c echo.Context, i ...interface{}) error {
-	fmt.Println("OK")
+	logs.Get(context.Background()).Info("OK")
 	if len(i) > 0 {
 		return c.JSON(http.StatusOK, i[0])
 	}
