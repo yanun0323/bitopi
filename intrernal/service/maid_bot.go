@@ -99,7 +99,9 @@ func (s *Service) getStartDate() time.Time {
 	t, err := s.repo.GetStartDate()
 	if err != nil {
 		s.l.Errorf("get start date error, %+v", err)
+		s.l.Info("reset start date to database")
 		t, _ = time.Parse("20060102", MaidDefaultStartTimeStr)
+		s.repo.UpdateStartDate(t)
 	}
 	return t
 }
@@ -108,6 +110,8 @@ func (s *Service) listMaid() []string {
 	maidList, err := s.repo.ListMaid()
 	if err != nil || len(maidList) == 0 {
 		s.l.Errorf("list maid error, %+v", err)
+		s.l.Info("reset main list to database")
+		_ = s.repo.UpdateMaidList(_MaidList)
 		maidList = _MaidList
 	}
 	return maidList
