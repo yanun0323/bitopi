@@ -110,7 +110,7 @@ func (s *Service) listMaid() []string {
 	maidList, err := s.repo.ListMaid()
 	if err != nil || len(maidList) == 0 {
 		s.l.Errorf("list maid error, %+v", err)
-		s.l.Info("reset main list to database")
+		s.l.Info("reset maid list to database")
 		_ = s.repo.UpdateMaidList(_MaidList)
 		maidList = _MaidList
 	}
