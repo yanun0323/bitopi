@@ -1,6 +1,7 @@
 token:
   maid: #slack token
   devops: #slack token
+  rails: #slack token
   
 # 0 = "info"
 # 1 = "trace"

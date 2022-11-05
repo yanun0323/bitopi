@@ -30,6 +30,7 @@ func Run(l *logs.Logger) {
 		})
 	})
 	e.POST("/devops-bro", svc.DevopsBotHandler, m...)
+	e.POST("/rails-hi", svc.RailsBotHandler, m...)
 	e.POST("/backend-maid", svc.MaidBotHandler, m...)
 	e.POST("/backend-maid/command", svc.MaidCommandHandler, m...)
 
