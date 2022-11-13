@@ -3,12 +3,14 @@ FROM golang:1.19-alpine AS build
 
 ADD . /go/build
 WORKDIR /go/build
+
 # install gcc
 RUN apk add build-base
-# install timezone data
-RUN apk add tzdata
 
-RUN ZONEINFO=/usr/share/timezone go build -o bitopi ./main.go
+# install timezone data
+RUN apk add --no-cache tzdata
+ENV TZ Asia/Taipei
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 # final stage
 FROM alpine:3.15
