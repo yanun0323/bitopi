@@ -18,8 +18,8 @@ import (
 )
 
 const (
-	_RootAdmin        = "<@U032TJB1PE1>"
-	_CommandChannelID = "C01JS6YTHPE"
+	_rootAdmin        = "<@U032TJB1PE1>"
+	_commandChannelID = "C01JS6YTHPE"
 )
 
 func (s *Service) MaidCommandHandler(c echo.Context) error {
@@ -56,13 +56,13 @@ func (s *Service) MaidCommandHandler(c echo.Context) error {
 	cmd := text[0]
 	switch cmd {
 	case "help":
-		return sendMaidCommandReply(callbackUrl, "*所有指令都只能在 <#"+_CommandChannelID+"> 使用*\n\n`/maid help` 顯示所有指令\n`/maid admin` 顯示所有管理員 ( 可執行指令人員 )\n`/maid admin {User}` 新增/刪除 管理員\n`/maid today` 回傳今日值班女僕\n`/maid list` 顯示女僕清單及起始計算日期\n`/maid set` 重設女僕清單及起始計算日期(7天換一次)\n```/maid set {UserA} {UserB} {UserC} ... {StartDate} \n/maid set @Yanun @Vic @Kai @Victor @Howard 2022-03-23```")
+		return sendMaidCommandReply(callbackUrl, "*所有指令都只能在 <#"+_commandChannelID+"> 使用*\n\n`/maid help` 顯示所有指令\n`/maid admin` 顯示所有管理員 ( 可執行指令人員 )\n`/maid admin {User}` 新增/刪除 管理員\n`/maid today` 回傳今日值班女僕\n`/maid list` 顯示女僕清單及起始計算日期\n`/maid set` 重設女僕清單及起始計算日期(7天換一次)\n```/maid set {UserA} {UserB} {UserC} ... {StartDate} \n/maid set @Yanun @Vic @Kai @Victor @Howard 2022-03-23```")
 	case "list":
 		maids := s.listMaid()
 		t := s.getStartDate()
 		return sendMaidCommandReply(callbackUrl, "\n起算日期: "+t.Format("2006-01-02")+"\n女僕順序: "+strings.Join(maids, " "))
 	case "set":
-		if caller != _RootAdmin && !valid {
+		if caller != _rootAdmin && !valid {
 			return sendMaidNoPermissionReply(s, callbackUrl)
 		}
 		users, message := parseContent(text[1:])
@@ -78,7 +78,7 @@ func (s *Service) MaidCommandHandler(c echo.Context) error {
 		if err := s.repo.UpdateMaidList(users); err != nil {
 			return sendMaidCommandReply(callbackUrl, fmt.Sprintf("set maid error, %s", err))
 		}
-		channel := _CommandChannelID
+		channel := _commandChannelID
 		maids := s.listMaid()
 		msg := caller + " 已重新設置女僕順序\n起算日期: " + s.getStartDate().Format("2006-01-02") + "\n女僕順序: " + strings.Join(maids, " ")
 		sendMaidChatPost(channel, msg)
@@ -86,7 +86,7 @@ func (s *Service) MaidCommandHandler(c echo.Context) error {
 	case "today":
 		return sendMaidCommandReply(callbackUrl, "今日女僕： "+s.getMaid())
 	case "admin":
-		if caller != _RootAdmin && !valid {
+		if caller != _rootAdmin && !valid {
 			return sendMaidNoPermissionReply(s, callbackUrl)
 		}
 		if len(text) > 1 {
@@ -104,11 +104,11 @@ func (s *Service) MaidCommandHandler(c echo.Context) error {
 func (s *Service) getAdmin() string {
 	admins, err := s.repo.ListAdmin()
 	if err != nil {
-		return _RootAdmin
+		return _rootAdmin
 	}
 	res := strings.Join(admins, " ")
 	if len(res) == 0 {
-		res = _RootAdmin
+		res = _rootAdmin
 	}
 	return res
 }
