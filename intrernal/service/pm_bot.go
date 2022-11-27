@@ -62,8 +62,12 @@ func (s *Service) PMBotHandler(c echo.Context) error {
 
 		bot := util.NewSlackNotifier(viper.GetString("token.pm"))
 
-		pmIndex := s.getPMIndex()
-		replyText := fmt.Sprintf("請稍候片刻，本週 SupportPM %s 將盡快為您服務 :smiling_face_with_3_hearts:\n", _pmList[pmIndex])
+		pmIndex, weekend := s.getPMIndex()
+		w := "本週"
+		if weekend {
+			w = "週末"
+		}
+		replyText := fmt.Sprintf("請稍候片刻，%s Support PM %s 將盡快為您服務 :smiling_face_with_3_hearts:\n", w, _pmList[pmIndex])
 
 		msg := util.SlackReplyMsg{
 			Text:        replyText,
@@ -84,14 +88,14 @@ func (s *Service) PMBotHandler(c echo.Context) error {
 	return ok(c)
 }
 
-func (s *Service) getPMIndex() int {
+func (s *Service) getPMIndex() (int, bool) {
 	start := s.getPMStartDate()
 	now := time.Now()
 	s.l.Debug("time start: ", start.Format("20060102 15:04:05 MST"))
 	s.l.Debug("time now: ", now.Format("20060102 15:04:05 MST"))
 
 	if isWeekend(now) { /* 假日Don */
-		return 2
+		return 2, true
 	}
 
 	interval := now.Sub(start)
@@ -99,7 +103,7 @@ func (s *Service) getPMIndex() int {
 	s.l.Debug("week: ", week)
 
 	index := week % len(_devopsBroList)
-	return int(index)
+	return int(index), false
 }
 
 func (s *Service) getPMStartDate() time.Time {
