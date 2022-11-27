@@ -7,6 +7,8 @@ WORKDIR /go/build
 # install gcc
 RUN apk add build-base
 
+RUN go build -o bitopi main.go
+
 # final stage
 FROM alpine:3.16
 
@@ -14,8 +16,6 @@ FROM alpine:3.16
 RUN apk add --no-cache tzdata
 ENV TZ Asia/Taipei
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
-
-RUN ls /go/build
 
 COPY --from=build /go/build/bitopi /var/application/bitopi
 COPY --from=build /go/build/config /var/application/config
