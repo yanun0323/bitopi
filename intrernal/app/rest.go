@@ -29,7 +29,9 @@ func Run() {
 		}{
 			Msg: "OK",
 		})
-	})
+	}, m...)
+	e.GET("/debug", svc.DebugService, m...)
+
 	e.POST("/pm", svc.PMBotHandler, m...)
 	e.POST("/rails-hi", svc.RailsBotHandler, m...)
 	e.POST("/devops-bro", svc.DevopsBotHandler, m...)

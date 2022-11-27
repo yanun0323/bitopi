@@ -66,7 +66,7 @@ func (s *Service) MaidCommandHandler(c echo.Context) error {
 			return sendMaidNoPermissionReply(s, callbackUrl)
 		}
 		users, message := parseContent(text[1:])
-		t, err := time.Parse("2006-01-02", message[0])
+		t, err := time.ParseInLocation("2006-01-02", message[0], time.Local)
 		if err != nil {
 			return sendMaidCommandReply(callbackUrl, fmt.Sprintf("invalid time format, %s", err))
 		}

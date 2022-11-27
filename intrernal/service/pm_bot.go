@@ -107,7 +107,7 @@ func (s *Service) getPMIndex() (int, bool) {
 }
 
 func (s *Service) getPMStartDate() time.Time {
-	t, _ := time.Parse("20060102", PMDefaultStartTimeStr)
+	t, _ := time.ParseInLocation("20060102", PMDefaultStartTimeStr, time.Local)
 	return t
 }
 

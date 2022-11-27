@@ -98,6 +98,6 @@ func (s *Service) getRailsIndex() int {
 }
 
 func (s *Service) getRailsStartDate() time.Time {
-	t, _ := time.Parse("20060102", RailsDefaultStartTimeStr)
+	t, _ := time.ParseInLocation("20060102", RailsDefaultStartTimeStr, time.Local)
 	return t
 }

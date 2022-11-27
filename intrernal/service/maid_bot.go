@@ -100,7 +100,7 @@ func (s *Service) getStartDate() time.Time {
 	if err != nil {
 		s.l.Errorf("get start date error, %+v", err)
 		s.l.Info("reset start date to database")
-		t, _ = time.Parse("20060102", MaidDefaultStartTimeStr)
+		t, _ = time.ParseInLocation("20060102", MaidDefaultStartTimeStr, time.Local)
 		s.repo.UpdateStartDate(t)
 	}
 	return t

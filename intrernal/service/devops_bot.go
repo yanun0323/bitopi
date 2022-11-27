@@ -103,7 +103,7 @@ func (s *Service) getExBroIndex() int {
 }
 
 func (s *Service) getDevopsStartDate() time.Time {
-	t, _ := time.Parse("20060102", DevopsDefaultStartTimeStr)
+	t, _ := time.ParseInLocation("20060102", DevopsDefaultStartTimeStr, time.Local)
 	return t
 }
 
