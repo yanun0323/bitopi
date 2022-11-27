@@ -15,6 +15,8 @@ RUN apk add --no-cache tzdata
 ENV TZ Asia/Taipei
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
+RUN ls /go/build
+
 COPY --from=build /go/build/bitopi /var/application/bitopi
 COPY --from=build /go/build/config /var/application/config
 COPY --from=build /go/build/bitopi.db /var/application/bitopi.db
