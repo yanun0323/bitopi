@@ -10,8 +10,6 @@ RUN go mod download
 # install gcc
 RUN apk add build-base
 
-RUN go mod download
-
 RUN go build -o bitopi main.go
 
 # final stage
