@@ -17,6 +17,7 @@ FROM alpine:3.16
 
 COPY --from=build /go/build/bitopi /var/application/bitopi
 COPY --from=build /go/build/config /var/application/config
+COPY --from=build /go/build/internal/repository/sqlite3/bitopi.db /var/application/bitopi.db
 
 EXPOSE 8001
 

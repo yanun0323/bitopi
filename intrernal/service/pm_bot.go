@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -15,23 +14,23 @@ import (
 )
 
 const (
-	DevopsDefaultStartTimeStr string = "20221023"
+	PMDefaultStartTimeStr string = "20221127"
 )
 
-// 週數 | BitoEx | Meta |
-// 本週 |   L    | T, H |
-// 下週 |   T    | H, L |
-// 下下 |   H    | L, T |
-
 var (
-	_devopsBroList = []string{
-		"<@U03FDTNPWBW>", /* Lawrence */
-		"<@U03RQKWLG8Z>", /* Tina */
-		"<@U01A7LEG1CZ>", /* Harlan */
+	_pmList = []string{
+		"<@U02223HG26L>", /* Rafeni */
+		"<@U01THK4U2MD>", /* Momo */
+		"<@UGVSBTC94>",   /* Donii */
+	}
+	_pmNameList = []string{
+		"Rafeni", /* Rafeni */
+		"Momo",   /* Momo */
+		"Donii",  /* Donii */
 	}
 )
 
-func (s *Service) DevopsBotHandler(c echo.Context) error {
+func (s *Service) PMBotHandler(c echo.Context) error {
 	length, err := strconv.Atoi(c.Request().Header["Content-Length"][0])
 	if err != nil {
 		return ok(c)
@@ -61,17 +60,15 @@ func (s *Service) DevopsBotHandler(c echo.Context) error {
 		}
 		s.l.Debugf("%+v\n", slackEventApi)
 
-		bot := util.NewSlackNotifier(viper.GetString("token.devops"))
+		bot := util.NewSlackNotifier(viper.GetString("token.pm"))
 
-		exBroIndex := s.getExBroIndex()
-		textPrefix := "請稍候片刻，本週猛哥/猛姐會盡快為您服務 :smiling_face_with_3_hearts:\n"
-		textRow2 := fmt.Sprintf("Bito EX/Pro: %s\n", _devopsBroList[exBroIndex])
-		textRow3 := fmt.Sprintf("Meta: %s", s.getMetaBroStr(exBroIndex))
+		pmIndex := s.getPMIndex()
+		replyText := fmt.Sprintf("請稍候片刻，本週 SupportPM %s 將盡快為您服務 :smiling_face_with_3_hearts:\n", _pmList[pmIndex])
 
 		msg := util.SlackReplyMsg{
-			Text:        textPrefix + textRow2 + textRow3,
+			Text:        replyText,
 			Channel:     slackEventApi.Event.Channel,
-			UserName:    "Devops-Bro",
+			UserName:    "PM",
 			TimeStamp:   slackEventApi.Event.TimeStamp,
 			Attachments: make([]map[string]string, 0),
 		}
@@ -87,12 +84,15 @@ func (s *Service) DevopsBotHandler(c echo.Context) error {
 	return ok(c)
 }
 
-func (s *Service) getExBroIndex() int {
-
-	start := s.getDevopsStartDate()
+func (s *Service) getPMIndex() int {
+	start := s.getPMStartDate()
 	now := time.Now()
 	s.l.Debug("time start: ", start.Format("20060102 15:04:05 MST"))
 	s.l.Debug("time now: ", now.Format("20060102 15:04:05 MST"))
+
+	if isWeekend(now) { /* 假日Don */
+		return 2
+	}
 
 	interval := now.Sub(start)
 	week := int(((interval.Milliseconds()/1000/60)/60)/24) / 7
@@ -102,18 +102,12 @@ func (s *Service) getExBroIndex() int {
 	return int(index)
 }
 
-func (s *Service) getDevopsStartDate() time.Time {
-	t, _ := time.Parse("20060102", DevopsDefaultStartTimeStr)
+func (s *Service) getPMStartDate() time.Time {
+	t, _ := time.Parse("20060102", PMDefaultStartTimeStr)
 	return t
 }
 
-func (s *Service) getMetaBroStr(exBroIndex int) string {
-	bros := make([]string, 0, len(_devopsBroList)-1)
-	for i := range _devopsBroList {
-		if i == exBroIndex {
-			continue
-		}
-		bros = append(bros, _devopsBroList[i])
-	}
-	return strings.Join(bros, " ")
+func isWeekend(t time.Time) bool {
+	w := t.Weekday()
+	return w == time.Saturday || w == time.Sunday
 }

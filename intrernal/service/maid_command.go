@@ -34,60 +34,60 @@ func (s *Service) MaidCommandHandler(c echo.Context) error {
 	s.l.Debug("user: ", userID, ", from channel: ", payload.Get("channel_id"))
 	directChannelID := s.getDirectChannelID(userID)
 	if len(directChannelID) == 0 {
-		return SendCommandReply(callbackUrl, "找不到私人訊息頻道")
+		return sendMaidCommandReply(callbackUrl, "找不到私人訊息頻道")
 	}
 	fromChannelID := payload.Get("channel_id")
 	s.l.Debugf("from channel ID: %s\nto channel ID: %s", fromChannelID, directChannelID)
 	if directChannelID != fromChannelID {
-		return SendCommandReply(callbackUrl, "指令只能在應用程式私訊使用，請到應用程式對話輸入指令")
+		return sendMaidCommandReply(callbackUrl, "指令只能在應用程式私訊使用，請到應用程式對話輸入指令")
 	}
 
 	caller := "<@" + userID + ">"
 	valid, err := s.repo.IsAdmin(caller)
 	if err != nil {
-		return SendCommandReply(callbackUrl, fmt.Sprintf("無法驗證管理員, %s", err))
+		return sendMaidCommandReply(callbackUrl, fmt.Sprintf("無法驗證管理員, %s", err))
 	}
 
-	text := SplitText(payload.Get("text"))
+	text := splitText(payload.Get("text"))
 	if len(text) == 0 {
-		return SendCommandReply(callbackUrl, "需要輸入指令，執行 `/maid help` 取得更多資訊")
+		return sendMaidCommandReply(callbackUrl, "需要輸入指令，執行 `/maid help` 取得更多資訊")
 	}
 
 	cmd := text[0]
 	switch cmd {
 	case "help":
-		return SendCommandReply(callbackUrl, "*所有指令都只能在 <#"+_CommandChannelID+"> 使用*\n\n`/maid help` 顯示所有指令\n`/maid admin` 顯示所有管理員 ( 可執行指令人員 )\n`/maid admin {User}` 新增/刪除 管理員\n`/maid today` 回傳今日值班女僕\n`/maid list` 顯示女僕清單及起始計算日期\n`/maid set` 重設女僕清單及起始計算日期(7天換一次)\n```/maid set {UserA} {UserB} {UserC} ... {StartDate} \n/maid set @Yanun @Vic @Kai @Victor @Howard 2022-03-23```")
+		return sendMaidCommandReply(callbackUrl, "*所有指令都只能在 <#"+_CommandChannelID+"> 使用*\n\n`/maid help` 顯示所有指令\n`/maid admin` 顯示所有管理員 ( 可執行指令人員 )\n`/maid admin {User}` 新增/刪除 管理員\n`/maid today` 回傳今日值班女僕\n`/maid list` 顯示女僕清單及起始計算日期\n`/maid set` 重設女僕清單及起始計算日期(7天換一次)\n```/maid set {UserA} {UserB} {UserC} ... {StartDate} \n/maid set @Yanun @Vic @Kai @Victor @Howard 2022-03-23```")
 	case "list":
 		maids := s.listMaid()
 		t := s.getStartDate()
-		return SendCommandReply(callbackUrl, "\n起算日期: "+t.Format("2006-01-02")+"\n女僕順序: "+strings.Join(maids, " "))
+		return sendMaidCommandReply(callbackUrl, "\n起算日期: "+t.Format("2006-01-02")+"\n女僕順序: "+strings.Join(maids, " "))
 	case "set":
 		if caller != _RootAdmin && !valid {
-			return SendNoPermissionReply(s, callbackUrl)
+			return sendMaidNoPermissionReply(s, callbackUrl)
 		}
 		users, message := parseContent(text[1:])
 		t, err := time.Parse("2006-01-02", message[0])
 		if err != nil {
-			return SendCommandReply(callbackUrl, fmt.Sprintf("invalid time format, %s", err))
+			return sendMaidCommandReply(callbackUrl, fmt.Sprintf("invalid time format, %s", err))
 		}
 
 		if err := s.repo.UpdateStartDate(t); err != nil {
-			return SendCommandReply(callbackUrl, fmt.Sprintf("update time error, %s", err))
+			return sendMaidCommandReply(callbackUrl, fmt.Sprintf("update time error, %s", err))
 		}
 
 		if err := s.repo.UpdateMaidList(users); err != nil {
-			return SendCommandReply(callbackUrl, fmt.Sprintf("set maid error, %s", err))
+			return sendMaidCommandReply(callbackUrl, fmt.Sprintf("set maid error, %s", err))
 		}
 		channel := _CommandChannelID
 		maids := s.listMaid()
 		msg := caller + " 已重新設置女僕順序\n起算日期: " + s.getStartDate().Format("2006-01-02") + "\n女僕順序: " + strings.Join(maids, " ")
-		sendChatPost(channel, msg)
-		return SendCommandReply(callbackUrl, "set succeed")
+		sendMaidChatPost(channel, msg)
+		return sendMaidCommandReply(callbackUrl, "set succeed")
 	case "today":
-		return SendCommandReply(callbackUrl, "今日女僕： "+s.getMaid())
+		return sendMaidCommandReply(callbackUrl, "今日女僕： "+s.getMaid())
 	case "admin":
 		if caller != _RootAdmin && !valid {
-			return SendNoPermissionReply(s, callbackUrl)
+			return sendMaidNoPermissionReply(s, callbackUrl)
 		}
 		if len(text) > 1 {
 			users, _ := parseContent(text[1:])
@@ -95,9 +95,9 @@ func (s *Service) MaidCommandHandler(c echo.Context) error {
 				s.repo.ReverseAdmin(users[i])
 			}
 		}
-		return SendCommandReply(callbackUrl, "*Admin list*\n"+s.getAdmin())
+		return sendMaidCommandReply(callbackUrl, "*Admin list*\n"+s.getAdmin())
 	default:
-		return SendCommandReply(callbackUrl, fmt.Sprintf("找不到指令 `%s`，執行 `/maid help` 取得更多資訊", cmd))
+		return sendMaidCommandReply(callbackUrl, fmt.Sprintf("找不到指令 `%s`，執行 `/maid help` 取得更多資訊", cmd))
 	}
 }
 
@@ -113,7 +113,7 @@ func (s *Service) getAdmin() string {
 	return res
 }
 
-func sendChatPost(channel, text string) {
+func sendMaidChatPost(channel, text string) {
 	bot := util.NewSlackNotifier(viper.GetString("token.maid"))
 	res, code, err := bot.Send(context.Background(), util.PostChat, util.SlackMsg{
 		Text:    text,
@@ -127,7 +127,7 @@ func sendChatPost(channel, text string) {
 	l.Debug("res: ", string(res))
 }
 
-func SendCommandReply(url util.Url, msg string) error {
+func sendMaidCommandReply(url util.Url, msg string) error {
 	bot := util.NewSlackNotifier(viper.GetString("token.maid"))
 	res, code, err := bot.Send(context.Background(), url, &util.GeneralMsg{Text: msg})
 	if err != nil {
@@ -139,11 +139,11 @@ func SendCommandReply(url util.Url, msg string) error {
 	return nil
 }
 
-func SendNoPermissionReply(s *Service, callbackUrl util.Url) error {
-	return SendCommandReply(callbackUrl, "用戶沒有執行此指令權限, 欲開啟權限請找管理員"+s.getAdmin())
+func sendMaidNoPermissionReply(s *Service, callbackUrl util.Url) error {
+	return sendMaidCommandReply(callbackUrl, "用戶沒有執行此指令權限, 欲開啟權限請找管理員"+s.getAdmin())
 }
 
-func SplitText(text string) []string {
+func splitText(text string) []string {
 	var sp, br byte = ' ', '\n'
 	result := []string{}
 

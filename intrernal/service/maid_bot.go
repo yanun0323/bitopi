@@ -18,7 +18,7 @@ const (
 )
 
 var (
-	_MaidList = []string{
+	_maidList = []string{
 		"<@U032TJB1PE1>", /* Yanun */
 		"<@U03ECC8Q61E>", /* Howard */
 		"<@U031SSN3QDT>", /* Kai */
@@ -69,7 +69,7 @@ func (s *Service) MaidBotHandler(c echo.Context) error {
 		}
 		res, code, err := bot.Send(context.Background(), util.PostChat, msg)
 		if err != nil {
-			fmt.Printf("bot send, %s\n", err)
+			s.l.Debugf("bot send, %s\n", err)
 		}
 		s.l.Debug("code: ", code)
 		s.l.Debug("res: ", string(res))
@@ -111,8 +111,8 @@ func (s *Service) listMaid() []string {
 	if err != nil || len(maidList) == 0 {
 		s.l.Errorf("list maid error, %+v", err)
 		s.l.Info("reset maid list to database")
-		_ = s.repo.UpdateMaidList(_MaidList)
-		maidList = _MaidList
+		_ = s.repo.UpdateMaidList(_maidList)
+		maidList = _maidList
 	}
 	return maidList
 }

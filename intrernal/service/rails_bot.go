@@ -18,7 +18,7 @@ const (
 )
 
 var (
-	_RailsHiList = []string{
+	_railsHiList = []string{
 		"<@U0156SRG9GW>", /* Gmi */
 		"<@UKL1DAL4E>",   /* Barry */
 		"<@U0328D2JE8H>", /* Kurt */
@@ -53,15 +53,15 @@ func (s *Service) RailsBotHandler(c echo.Context) error {
 		slackEventApi := util.SlackEventAPI{}
 		err := json.NewDecoder(c.Request().Body).Decode(&slackEventApi)
 		if err != nil && err != io.EOF {
-			fmt.Printf("decode json, %s\n", err)
+			s.l.Debugf("decode json, %s\n", err)
 			return ok(c)
 		}
-		fmt.Printf("%+v\n", slackEventApi)
+		s.l.Debugf("%+v\n", slackEventApi)
 
 		bot := util.NewSlackNotifier(viper.GetString("token.rails"))
 
 		railsIndex := s.getRailsIndex()
-		replyText := fmt.Sprintf("請稍候片刻，本週Rails哥 %s 會盡快為您服務 :smiling_face_with_3_hearts:\n", _RailsHiList[railsIndex])
+		replyText := fmt.Sprintf("請稍候片刻，本週茅房廁紙 %s 會盡快為您服務 :smiling_face_with_3_hearts:\n", _railsHiList[railsIndex])
 
 		msg := util.SlackReplyMsg{
 			Text:        replyText,
@@ -72,7 +72,7 @@ func (s *Service) RailsBotHandler(c echo.Context) error {
 		}
 		res, code, err := bot.Send(context.Background(), util.PostChat, msg)
 		if err != nil {
-			fmt.Printf("bot send, %s\n", err)
+			s.l.Debugf("bot send, %s\n", err)
 		}
 		s.l.Debug("code: ", code)
 		s.l.Debug("res: ", string(res))
@@ -93,7 +93,7 @@ func (s *Service) getRailsIndex() int {
 	week := int(((interval.Milliseconds()/1000/60)/60)/24) / 7
 	s.l.Debug("week: ", week)
 
-	index := week % len(_DevopsBroList)
+	index := week % len(_devopsBroList)
 	return int(index)
 }
 

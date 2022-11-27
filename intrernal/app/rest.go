@@ -6,11 +6,12 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/spf13/viper"
 	"github.com/yanun0323/pkg/logs"
 )
 
-func Run(l *logs.Logger) {
-
+func Run() {
+	l := logs.New("bito_pi", uint8(viper.GetInt("log.level")))
 	e := echo.New()
 	e.Logger.SetLevel(4)
 
@@ -29,8 +30,9 @@ func Run(l *logs.Logger) {
 			Msg: "OK",
 		})
 	})
-	e.POST("/devops-bro", svc.DevopsBotHandler, m...)
+	e.POST("/pm", svc.PMBotHandler, m...)
 	e.POST("/rails-hi", svc.RailsBotHandler, m...)
+	e.POST("/devops-bro", svc.DevopsBotHandler, m...)
 	e.POST("/backend-maid", svc.MaidBotHandler, m...)
 	e.POST("/backend-maid/command", svc.MaidCommandHandler, m...)
 
