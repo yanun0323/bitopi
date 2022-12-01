@@ -93,7 +93,7 @@ func (s *Service) getRailsIndex() int {
 	week := int(((interval.Milliseconds()/1000/60)/60)/24) / 7
 	s.l.Debug("week: ", week)
 
-	index := week % len(_devopsBroList)
+	index := week % len(_railsHiList)
 	return int(index)
 }
 

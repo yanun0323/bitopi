@@ -102,7 +102,7 @@ func (s *Service) getPMIndex() (int, bool) {
 	week := int(((interval.Milliseconds()/1000/60)/60)/24) / 7
 	s.l.Debug("week: ", week)
 
-	index := week % len(_devopsBroList)
+	index := week % len(_pmList)
 	return int(index), false
 }
 
