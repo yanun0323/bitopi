@@ -33,8 +33,8 @@ func New() (Service, error) {
 	}, nil
 }
 
-func ok(c echo.Context, i ...interface{}) error {
-	logs.Get(context.Background()).Info("OK")
+func (svc *Service) ok(c echo.Context, i ...interface{}) error {
+	svc.l.Info("OK")
 	if len(i) > 0 {
 		return c.JSON(http.StatusOK, i[0])
 	}

@@ -45,14 +45,14 @@ func NewBot(name string, svc Service, opt SlackBotOption) SlackBot {
 func (bot *SlackBot) Handler(c echo.Context) error {
 	requestType := bot.parseSlackRequestType(c)
 	if len(requestType) == 0 {
-		return ok(c)
+		return bot.ok(c)
 	}
 
 	if requestType == _eventVerification {
-		return ok(c, bot.verificationSlackResponse(c))
+		return bot.ok(c, bot.verificationSlackResponse(c))
 	}
 
-	return ok(c, bot.eventCallbackResponse(c))
+	return bot.ok(c, bot.eventCallbackResponse(c))
 }
 
 func (bot *SlackBot) parseSlackRequestType(c echo.Context) string {
@@ -112,11 +112,11 @@ func (bot *SlackBot) eventCallbackResponse(c echo.Context) interface{} {
 	response, code, err := notifier.Send(bot.ctx, util.PostChat, msg)
 	if err != nil {
 		bot.l.Warnf("send message to slack error, %+v", err)
-		return ok(c)
+		return nil
 	}
 
 	bot.l.Debugf("code: %d, response: %s", code, string(response))
-	return ok(c)
+	return nil
 }
 
 func (bot *SlackBot) GetDutyMember() (string, []string, error) {
@@ -134,11 +134,22 @@ func (bot *SlackBot) GetDutyMember() (string, []string, error) {
 		return "", nil, err
 	}
 
-	index := weekFromStartDate % int64(len(member))
-	return member[index], append(member[:index], member[index+1:]...), nil
+	index := int(weekFromStartDate % int64(len(member)))
+	bot.l.Debug("member list: ", member)
+	bot.l.Debug("index: ", index)
+	left := make([]string, 0, len(member)-1)
+	for i, m := range member {
+		if i != index {
+			left = append(left, m)
+		}
+	}
+	return member[index], left, nil
 }
 
 func (bot *SlackBot) getStartDate() time.Time {
+	// XXX: Remove me
+	return bot.DefaultStartDate
+
 	// TODO: Add service start date key in database
 	// bot.repo.GetStartDate(bot.MemberTableName)
 	// Table be like: | service_name | date |
@@ -153,12 +164,15 @@ func (bot *SlackBot) getStartDate() time.Time {
 }
 
 func (bot *SlackBot) listMember() ([]string, error) {
+	// XXX: Remove me
+	return bot.DefaultMemberList, nil
+
 	member, err := bot.repo.ListMember(bot.MemberTableName)
 	if err == nil && len(member) != 0 {
 		return member, nil
 	}
 	bot.l.Warnf("list member error, %+v", err)
-	bot.l.Warnf("reset %s member to database '%s'", bot.MemberTableName)
+	bot.l.Warnf("reset member to database '%s'", bot.MemberTableName)
 	if err := bot.repo.UpdateMember(bot.MemberTableName, bot.DefaultMemberList); err != nil {
 		return nil, err
 	}

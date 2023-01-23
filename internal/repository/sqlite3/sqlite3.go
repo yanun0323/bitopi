@@ -35,6 +35,9 @@ func autoMigrate(db *gorm.DB) error {
 }
 
 func (dao SqlDao) ListMember(tableName string) ([]string, error) {
+	if !dao.db.Migrator().HasTable(tableName) {
+		_ = dao.db.Table(tableName).AutoMigrate(&model.Member{})
+	}
 	var member []model.Member
 	if err := dao.db.Table(tableName).Find(&member).Error; err != nil {
 		return nil, err

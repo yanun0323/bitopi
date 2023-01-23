@@ -69,10 +69,11 @@ func Run() {
 		MemberTableName: "devops_members",
 		Token:           viper.GetString("devops.token"),
 		ReplyMsgFormat:  "請稍候片刻，本週猛哥/猛姐會盡快為您服務 :smiling_face_with_3_hearts:\nBito EX/Pro: %s\nMeta: %s",
+		IsMultiMember:   true,
 	})
 
 	maidBot := service.NewBot("maid", svc, service.SlackBotOption{
-		DefaultStartDate: util.NewDate(2022, 9, 25),
+		DefaultStartDate: util.NewDate(2023, 1, 22), //2022,09,25
 		DefaultMemberList: []string{
 			"<@U032TJB1PE1>", /* Yanun */
 			"<@U03ECC8Q61E>", /* Howard */
@@ -90,7 +91,7 @@ func Run() {
 	e.POST("/rails-hi", railsBot.Handler, m...)
 	e.POST("/devops-bro", devopsBot.Handler, m...)
 	e.POST("/backend-maid", maidBot.Handler, m...)
-	e.POST("/backend-maid/command", svc.MaidCommandHandler, m...)
+	// e.POST("/backend-maid/command", svc.MaidCommandHandler, m...)
 
 	e.Start(":8001")
 }
