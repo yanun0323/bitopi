@@ -1,7 +1,8 @@
 package sqlite3
 
 import (
-	"bitopi/intrernal/model"
+	"bitopi/internal/model"
+	"fmt"
 	"time"
 
 	"github.com/pkg/errors"
@@ -31,6 +32,40 @@ func New() (SqlDao, error) {
 
 func autoMigrate(db *gorm.DB) error {
 	return db.AutoMigrate(&model.Maid{}, &model.Admin{}, &model.Setting{})
+}
+
+func (dao SqlDao) ListMember(tableName string) ([]string, error) {
+	var member []model.Member
+	if err := dao.db.Table(tableName).Find(&member).Error; err != nil {
+		return nil, err
+	}
+
+	result := make([]string, 0, len(member))
+	for _, m := range member {
+		result = append(result, m.Name)
+	}
+	return result, nil
+}
+
+func (dao SqlDao) UpdateMember(tableName string, member []string) error {
+	return dao.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Exec(fmt.Sprintf("DELETE FROM %s", tableName)).Error; err != nil {
+			return err
+		}
+
+		for i, m := range member {
+			elem := model.Maid{
+				Name:  m,
+				Order: i,
+			}
+
+			err := tx.Create(&elem).Error
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 func (dao SqlDao) ListMaid() ([]string, error) {

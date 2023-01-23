@@ -1,7 +1,7 @@
 package service
 
 import (
-	"bitopi/intrernal/util"
+	"bitopi/internal/util"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -22,11 +22,6 @@ var (
 		"<@U02223HG26L>", /* Rafeni */
 		"<@U01THK4U2MD>", /* Momo */
 		"<@UGVSBTC94>",   /* Donii */
-	}
-	_pmNameList = []string{
-		"Rafeni", /* Rafeni */
-		"Momo",   /* Momo */
-		"Donii",  /* Donii */
 	}
 )
 

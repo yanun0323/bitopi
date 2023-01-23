@@ -1,7 +1,5 @@
 package util
 
-const ()
-
 type SlackVerificationResponse struct {
 	Challenge string `json:"challenge"`
 }

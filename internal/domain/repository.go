@@ -1,8 +1,14 @@
 package domain
 
-import "time"
+import (
+	"time"
+)
 
 type Repository interface {
+	ListMember(string) ([]string, error)
+	UpdateMember(string, []string) error
+
+	// XXX: Remove me
 	ListMaid() ([]string, error)
 	UpdateMaidList(list []string) error
 

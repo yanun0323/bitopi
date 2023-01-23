@@ -1,7 +1,7 @@
 package config
 
 import (
-	"bitopi/intrernal/util"
+	"bitopi/internal/util"
 
 	"github.com/spf13/viper"
 )

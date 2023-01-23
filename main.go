@@ -1,7 +1,7 @@
 package main
 
 import (
-	"bitopi/intrernal/app"
+	"bitopi/internal/app"
 	"bitopi/pkg/config"
 )
 

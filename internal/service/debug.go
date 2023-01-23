@@ -1,7 +1,7 @@
 package service
 
 import (
-	"bitopi/intrernal/util"
+	"bitopi/internal/util"
 	"net/http"
 	"time"
 

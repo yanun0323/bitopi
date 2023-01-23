@@ -1,8 +1,8 @@
 package service
 
 import (
-	"bitopi/intrernal/model"
-	"bitopi/intrernal/util"
+	"bitopi/internal/model"
+	"bitopi/internal/util"
 	"context"
 	"encoding/json"
 	"fmt"

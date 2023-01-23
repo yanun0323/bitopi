@@ -1,9 +1,9 @@
 package repository
 
 import (
-	"bitopi/intrernal/domain"
-	"bitopi/intrernal/repository/github"
-	"bitopi/intrernal/repository/sqlite3"
+	"bitopi/internal/domain"
+	"bitopi/internal/repository/github"
+	"bitopi/internal/repository/sqlite3"
 )
 
 type Repo struct {
