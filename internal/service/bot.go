@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -29,6 +30,7 @@ type SlackBotOption struct {
 	MemberTableName   string
 	Token             string
 	ReplyMsgFormat    string
+	IsMultiMember     bool
 }
 
 func NewBot(name string, svc Service, opt SlackBotOption) SlackBot {
@@ -87,15 +89,21 @@ func (bot *SlackBot) eventCallbackResponse(c echo.Context) interface{} {
 	}
 
 	bot.l.Debugf("slack event api: %+v", slackEventApi)
-	dutyMember, err := bot.GetDutyMember()
+	dutyMember, leftMembers, err := bot.GetDutyMember()
 	if err != nil {
 		bot.l.Errorf("get duty member error, %+v", err)
 		return nil
 	}
+	text := ""
+	if bot.IsMultiMember {
+		text = fmt.Sprintf(bot.ReplyMsgFormat, dutyMember, strings.Join(leftMembers, " "))
+	} else {
+		text = fmt.Sprintf(bot.ReplyMsgFormat, dutyMember)
+	}
 
 	notifier := util.NewSlackNotifier(bot.Token)
 	msg := util.SlackReplyMsg{
-		Text:        fmt.Sprintf(bot.ReplyMsgFormat, dutyMember),
+		Text:        text,
 		Channel:     slackEventApi.Event.Channel,
 		TimeStamp:   slackEventApi.Event.TimeStamp,
 		Attachments: []map[string]string{},
@@ -111,7 +119,7 @@ func (bot *SlackBot) eventCallbackResponse(c echo.Context) interface{} {
 	return ok(c)
 }
 
-func (bot *SlackBot) GetDutyMember() (string, error) {
+func (bot *SlackBot) GetDutyMember() (string, []string, error) {
 	startDate := bot.getStartDate()
 	now := time.Now()
 	bot.l.Debug("time start: ", startDate.Format("20060102 15:04:05 MST"))
@@ -123,11 +131,11 @@ func (bot *SlackBot) GetDutyMember() (string, error) {
 
 	member, err := bot.listMember()
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
 	index := weekFromStartDate % int64(len(member))
-	return member[index], nil
+	return member[index], append(member[:index], member[index+1:]...), nil
 }
 
 func (bot *SlackBot) getStartDate() time.Time {
