@@ -80,7 +80,8 @@ func (dao MysqlDao) ListMember(memberType string) ([]string, error) {
 
 func (dao MysqlDao) UpdateMember(memberType string, member []string) error {
 	return dao.db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Where("type = ?", memberType).Where("order <> -1").Delete(&model.Member{}).Error; err != nil {
+		// FIXME: need to query first and delete object by query result
+		if err := tx.Where("type = ? AND order <> ?", memberType, -1).Delete(&model.Member{}).Error; err != nil {
 			return err
 		}
 

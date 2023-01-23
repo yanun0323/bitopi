@@ -24,14 +24,15 @@ func Run() {
 
 	rateLimiter := middleware.RateLimiter(middleware.NewRateLimiterMemoryStore(20))
 	m := []echo.MiddlewareFunc{rateLimiter}
-	e.GET("/healthz", func(c echo.Context) error {
+	router := e.Group("", m...)
+	router.GET("/healthz", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, struct {
 			Msg string `json:"message"`
 		}{
 			Msg: "OK",
 		})
 	}, m...)
-	e.GET("/debug", svc.DebugService, m...)
+	router.GET("/debug", svc.DebugService, m...)
 
 	pmBot := service.NewBot("pm", svc, service.SlackBotOption{
 		DefaultStartDate: util.NewDate(2022, 11, 27),
@@ -39,9 +40,8 @@ func Run() {
 			"<@U02223HG26L>", /* Rafeni */
 			"<@U01THK4U2MD>", /* Momo */
 		},
-		MemberTableName: "pm_members",
-		Token:           viper.GetString("pm.token"),
-		ReplyMsgFormat:  "請稍候片刻，%s Support PM %s 將盡快為您服務 :smiling_face_with_3_hearts:",
+		Token:          viper.GetString("pm.token"),
+		ReplyMsgFormat: "請稍候片刻，%s Support PM %s 將盡快為您服務 :smiling_face_with_3_hearts:",
 	})
 
 	railsBot := service.NewBot("rails", svc, service.SlackBotOption{
@@ -54,9 +54,8 @@ func Run() {
 			"<@U041HD3AQ3D>", /* Eric */
 			"<@U01GTQ8K52P>", /* Yuan */
 		},
-		MemberTableName: "rails_members",
-		Token:           viper.GetString("rails.token"),
-		ReplyMsgFormat:  "請稍候片刻，本週茅房廁紙 %s 會盡快為您服務 :smiling_face_with_3_hearts:",
+		Token:          viper.GetString("rails.token"),
+		ReplyMsgFormat: "請稍候片刻，本週茅房廁紙 %s 會盡快為您服務 :smiling_face_with_3_hearts:",
 	})
 
 	devopsBot := service.NewBot("devops", svc, service.SlackBotOption{
@@ -66,14 +65,13 @@ func Run() {
 			"<@U03RQKWLG8Z>", /* Tina */
 			"<@U01A7LEG1CZ>", /* Harlan */
 		},
-		MemberTableName: "devops_members",
-		Token:           viper.GetString("devops.token"),
-		ReplyMsgFormat:  "請稍候片刻，本週猛哥/猛姐會盡快為您服務 :smiling_face_with_3_hearts:\nBito EX/Pro: %s\nMeta: %s",
-		IsMultiMember:   true,
+		Token:          viper.GetString("devops.token"),
+		ReplyMsgFormat: "請稍候片刻，本週猛哥/猛姐會盡快為您服務 :smiling_face_with_3_hearts:\nBito EX/Pro: %s\nMeta: %s",
+		IsMultiMember:  true,
 	})
 
 	maidBot := service.NewBot("maid", svc, service.SlackBotOption{
-		DefaultStartDate: util.NewDate(2023, 1, 22), //2022,09,25
+		DefaultStartDate: util.NewDate(2022, 9, 25),
 		DefaultMemberList: []string{
 			"<@U032TJB1PE1>", /* Yanun */
 			"<@U03ECC8Q61E>", /* Howard */
@@ -82,16 +80,30 @@ func Run() {
 			"<@U036V8WPXDY>", /* Victor */
 			"<@U03MWAJDBV3>", /* Luki */
 		},
-		MemberTableName: "maid_members",
-		Token:           viper.GetString("maid.token"),
-		ReplyMsgFormat:  "請稍候片刻，本週女僕 %s 會盡快為您服務 :smiling_face_with_3_hearts:",
+		Token:          viper.GetString("maid.token"),
+		ReplyMsgFormat: "請稍候片刻，本週女僕 %s 會盡快為您服務 :smiling_face_with_3_hearts:",
 	})
 
-	e.POST("/pm", pmBot.Handler, m...)
-	e.POST("/rails-hi", railsBot.Handler, m...)
-	e.POST("/devops-bro", devopsBot.Handler, m...)
-	e.POST("/backend-maid", maidBot.Handler, m...)
-	// e.POST("/backend-maid/command", svc.MaidCommandHandler, m...)
+	testBot := service.NewBot("test", svc, service.SlackBotOption{
+		DefaultStartDate: util.NewDate(2023, 1, 22),
+		DefaultMemberList: []string{
+			"<@U032TJB1PE1>", /* Yanun */
+			"<@U03ECC8Q61E>", /* Howard */
+			"<@U031SSN3QDT>", /* Kai */
+			"<@U01QCKG7529>", /* Vic */
+			"<@U036V8WPXDY>", /* Victor */
+			"<@U03MWAJDBV3>", /* Luki */
+		},
+		Token:          viper.GetString("test.token"),
+		ReplyMsgFormat: "測試訊息 %s :smiling_face_with_3_hearts:",
+	})
+
+	router.POST("/pm", pmBot.Handler)
+	router.POST("/rails-hi", railsBot.Handler)
+	router.POST("/devops-bro", devopsBot.Handler)
+	router.POST("/backend-maid", maidBot.Handler)
+	router.POST("/test", testBot.Handler)
+	// router.POST("/backend-maid/command", svc.MaidCommandHandler, m...)
 
 	e.Start(":8001")
 }

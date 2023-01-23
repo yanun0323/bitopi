@@ -27,7 +27,6 @@ type SlackBot struct {
 type SlackBotOption struct {
 	DefaultStartDate  time.Time
 	DefaultMemberList []string
-	MemberTableName   string
 	Token             string
 	ReplyMsgFormat    string
 	IsMultiMember     bool
@@ -94,17 +93,20 @@ func (bot *SlackBot) eventCallbackResponse(c echo.Context) interface{} {
 		bot.l.Errorf("get duty member error, %+v", err)
 		return nil
 	}
-	text := ""
+
+	replyText := ""
 	if bot.IsMultiMember {
-		text = fmt.Sprintf(bot.ReplyMsgFormat, dutyMember, strings.Join(leftMembers, " "))
+		replyText = fmt.Sprintf(bot.ReplyMsgFormat, dutyMember, strings.Join(leftMembers, " "))
 	} else {
-		text = fmt.Sprintf(bot.ReplyMsgFormat, dutyMember)
+		replyText = fmt.Sprintf(bot.ReplyMsgFormat, dutyMember)
 	}
+
+	bot.l.Debugf("slack event api: %+v", slackEventApi)
 
 	notifier := util.NewSlackNotifier(bot.Token)
 
 	if err := bot.sendToSlack(notifier, util.SlackReplyMsg{
-		Text:        text,
+		Text:        replyText,
 		Channel:     slackEventApi.Event.Channel,
 		TimeStamp:   slackEventApi.Event.TimeStamp,
 		Attachments: []map[string]string{},
@@ -112,10 +114,15 @@ func (bot *SlackBot) eventCallbackResponse(c echo.Context) interface{} {
 		return err
 	}
 
+	directMessageText := fmt.Sprintf("<#%s>\n```%s```\nhttps://bitoexworkspace.slack.com/archives/%s/p%s",
+		slackEventApi.Event.Channel,
+		slackEventApi.Event.Text,
+		slackEventApi.Event.Channel,
+		strings.ReplaceAll(slackEventApi.Event.EventTimeStamp, ".", ""))
+
 	if err := bot.sendToSlack(notifier, util.SlackReplyMsg{
-		Text:        text,
+		Text:        directMessageText,
 		Channel:     dutyMember[2 : len(dutyMember)-1],
-		TimeStamp:   slackEventApi.Event.TimeStamp,
 		Attachments: []map[string]string{},
 	}); err != nil {
 		return err
@@ -169,16 +176,13 @@ func (bot *SlackBot) getStartDate() time.Time {
 }
 
 func (bot *SlackBot) listMember() ([]string, error) {
-	// XXX: Remove me
-	return bot.DefaultMemberList, nil
-
-	member, err := bot.repo.ListMember(bot.MemberTableName)
+	member, err := bot.repo.ListMember(bot.Name)
 	if err == nil && len(member) != 0 {
 		return member, nil
 	}
 	bot.l.Warnf("list member error, %+v", err)
-	bot.l.Warnf("reset member to database '%s'", bot.MemberTableName)
-	if err := bot.repo.UpdateMember(bot.MemberTableName, bot.DefaultMemberList); err != nil {
+	bot.l.Warnf("reset member to database '%s'", bot.Name)
+	if err := bot.repo.UpdateMember(bot.Name, bot.DefaultMemberList); err != nil {
 		return nil, err
 	}
 	return bot.DefaultMemberList, nil
