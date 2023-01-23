@@ -102,20 +102,25 @@ func (bot *SlackBot) eventCallbackResponse(c echo.Context) interface{} {
 	}
 
 	notifier := util.NewSlackNotifier(bot.Token)
-	msg := util.SlackReplyMsg{
+
+	if err := bot.sendToSlack(notifier, util.SlackReplyMsg{
 		Text:        text,
 		Channel:     slackEventApi.Event.Channel,
 		TimeStamp:   slackEventApi.Event.TimeStamp,
 		Attachments: []map[string]string{},
+	}); err != nil {
+		return err
 	}
 
-	response, code, err := notifier.Send(bot.ctx, util.PostChat, msg)
-	if err != nil {
-		bot.l.Warnf("send message to slack error, %+v", err)
-		return nil
+	if err := bot.sendToSlack(notifier, util.SlackReplyMsg{
+		Text:        text,
+		Channel:     dutyMember[2 : len(dutyMember)-1],
+		TimeStamp:   slackEventApi.Event.TimeStamp,
+		Attachments: []map[string]string{},
+	}); err != nil {
+		return err
 	}
 
-	bot.l.Debugf("code: %d, response: %s", code, string(response))
 	return nil
 }
 
@@ -177,4 +182,15 @@ func (bot *SlackBot) listMember() ([]string, error) {
 		return nil, err
 	}
 	return bot.DefaultMemberList, nil
+}
+
+func (bot *SlackBot) sendToSlack(notifier *util.SlackNotifier, msg util.SlackReplyMsg) error {
+	response, code, err := notifier.Send(bot.ctx, util.PostChat, msg)
+	if err != nil {
+		bot.l.Warnf("send message to slack error, %+v", err)
+		return err
+	}
+
+	bot.l.Debugf("code: %d, response: %s", code, string(response))
+	return nil
 }
