@@ -22,7 +22,6 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 COPY --from=build /go/build/bitopi /var/application/bitopi
 COPY --from=build /go/build/config /var/application/config
-COPY --from=build /go/build/bitopi.db /var/application/bitopi.db
 
 EXPOSE 8001
 
