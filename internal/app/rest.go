@@ -33,19 +33,15 @@ func Run() {
 	}, m...)
 	e.GET("/debug", svc.DebugService, m...)
 
-	maidBot := service.NewBot("maid", svc, service.SlackBotOption{
-		DefaultStartDate: util.NewDate(2022, 9, 25),
+	pmBot := service.NewBot("pm", svc, service.SlackBotOption{
+		DefaultStartDate: util.NewDate(2022, 11, 27),
 		DefaultMemberList: []string{
-			"<@U032TJB1PE1>", /* Yanun */
-			"<@U03ECC8Q61E>", /* Howard */
-			"<@U031SSN3QDT>", /* Kai */
-			"<@U01QCKG7529>", /* Vic */
-			"<@U036V8WPXDY>", /* Victor */
-			"<@U03MWAJDBV3>", /* Luki */
+			"<@U02223HG26L>", /* Rafeni */
+			"<@U01THK4U2MD>", /* Momo */
 		},
-		MemberTableName: "maid_members",
-		Token:           viper.GetString("maid.token"),
-		ReplyMsgFormat:  "請稍候片刻，本週女僕 %s 會盡快為您服務 :smiling_face_with_3_hearts:",
+		MemberTableName: "pm_members",
+		Token:           viper.GetString("pm.token"),
+		ReplyMsgFormat:  "請稍候片刻，%s Support PM %s 將盡快為您服務 :smiling_face_with_3_hearts:",
 	})
 
 	railsBot := service.NewBot("rails", svc, service.SlackBotOption{
@@ -63,20 +59,36 @@ func Run() {
 		ReplyMsgFormat:  "請稍候片刻，本週茅房廁紙 %s 會盡快為您服務 :smiling_face_with_3_hearts:",
 	})
 
-	pmBot := service.NewBot("pm", svc, service.SlackBotOption{
-		DefaultStartDate: util.NewDate(2022, 11, 27),
+	devopsBot := service.NewBot("devops", svc, service.SlackBotOption{
+		DefaultStartDate: util.NewDate(2022, 10, 23),
 		DefaultMemberList: []string{
-			"<@U02223HG26L>", /* Rafeni */
-			"<@U01THK4U2MD>", /* Momo */
+			"<@U03FDTNPWBW>", /* Lawrence */
+			"<@U03RQKWLG8Z>", /* Tina */
+			"<@U01A7LEG1CZ>", /* Harlan */
 		},
-		MemberTableName: "pm_members",
-		Token:           viper.GetString("pm.token"),
-		ReplyMsgFormat:  "請稍候片刻，%s Support PM %s 將盡快為您服務 :smiling_face_with_3_hearts:",
+		MemberTableName: "devops_members",
+		Token:           viper.GetString("devops.token"),
+		ReplyMsgFormat:  "請稍候片刻，本週猛哥/猛姐會盡快為您服務 :smiling_face_with_3_hearts:\nBito EX/Pro: %s\nMeta: %s",
+	})
+
+	maidBot := service.NewBot("maid", svc, service.SlackBotOption{
+		DefaultStartDate: util.NewDate(2022, 9, 25),
+		DefaultMemberList: []string{
+			"<@U032TJB1PE1>", /* Yanun */
+			"<@U03ECC8Q61E>", /* Howard */
+			"<@U031SSN3QDT>", /* Kai */
+			"<@U01QCKG7529>", /* Vic */
+			"<@U036V8WPXDY>", /* Victor */
+			"<@U03MWAJDBV3>", /* Luki */
+		},
+		MemberTableName: "maid_members",
+		Token:           viper.GetString("maid.token"),
+		ReplyMsgFormat:  "請稍候片刻，本週女僕 %s 會盡快為您服務 :smiling_face_with_3_hearts:",
 	})
 
 	e.POST("/pm", pmBot.Handler, m...)
 	e.POST("/rails-hi", railsBot.Handler, m...)
-	e.POST("/devops-bro", svc.DevopsBotHandler, m...)
+	e.POST("/devops-bro", devopsBot.Handler, m...)
 	e.POST("/backend-maid", maidBot.Handler, m...)
 	e.POST("/backend-maid/command", svc.MaidCommandHandler, m...)
 
