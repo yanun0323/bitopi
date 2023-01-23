@@ -2,22 +2,19 @@ package repository
 
 import (
 	"bitopi/internal/domain"
-	"bitopi/internal/repository/github"
-	"bitopi/internal/repository/sqlite3"
+	"bitopi/internal/repository/mysql"
 )
 
 type Repo struct {
-	github.GithubDao
-	sqlite3.SqlDao
+	mysql.MysqlDao
 }
 
 func NewRepo() (domain.Repository, error) {
-	sqlDao, err := sqlite3.New()
+	mysqlDao, err := mysql.New()
 	if err != nil {
 		return nil, err
 	}
 	return Repo{
-		GithubDao: github.NewGithubDao(),
-		SqlDao:    sqlDao,
+		MysqlDao: mysqlDao,
 	}, nil
 }

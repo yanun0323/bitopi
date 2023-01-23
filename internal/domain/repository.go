@@ -8,14 +8,12 @@ type Repository interface {
 	ListMember(string) ([]string, error)
 	UpdateMember(string, []string) error
 
-	// XXX: Remove me
-	ListMaid() ([]string, error)
-	UpdateMaidList(list []string) error
-
+	// TODO: Refactor for different team
 	IsAdmin(admin string) (bool, error)
 	ListAdmin() ([]string, error)
 	ReverseAdmin(admin string) error
 
+	// TODO: Refactor for different team
 	GetStartDate() (time.Time, error)
 	UpdateStartDate(t time.Time) error
 }

@@ -1,45 +1,73 @@
-package sqlite3
+package mysql
 
 import (
 	"bitopi/internal/model"
+	"errors"
 	"fmt"
 	"time"
 
-	"github.com/pkg/errors"
-
-	"gorm.io/driver/sqlite"
+	"github.com/spf13/viper"
+	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
 
-type SqlDao struct {
+type MysqlDao struct {
 	db *gorm.DB
 }
 
-func New() (SqlDao, error) {
-	db, err := gorm.Open(sqlite.Open("bitopi.db"), &gorm.Config{})
+func New() (MysqlDao, error) {
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+		viper.GetString("mysql.username"),
+		viper.GetString("mysql.password"),
+		viper.GetString("mysql.host"),
+		viper.GetInt("mysql.port"),
+		viper.GetString("mysql.database"))
+
+	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
-		return SqlDao{}, err
+		return MysqlDao{}, err
 	}
 
-	if err := autoMigrate(db); err != nil {
-		return SqlDao{}, err
+	if err := initMigration(db); err != nil {
+		return MysqlDao{}, err
 	}
 
-	return SqlDao{
+	return MysqlDao{
 		db: db,
 	}, nil
 }
 
-func autoMigrate(db *gorm.DB) error {
-	return db.AutoMigrate(&model.Maid{}, &model.Admin{}, &model.Setting{})
+func initMigration(db *gorm.DB) error {
+	if err := migrate(db, &model.Member{}); err != nil {
+		return err
+	}
+
+	if err := migrate(db, &model.Admin{}); err != nil {
+		return err
+	}
+
+	if err := migrate(db, &model.Setting{}); err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (dao SqlDao) ListMember(tableName string) ([]string, error) {
-	if !dao.db.Migrator().HasTable(tableName) {
-		_ = dao.db.Table(tableName).AutoMigrate(&model.Member{})
+func migrate(db *gorm.DB, p interface{}) error {
+	if db.Migrator().HasTable(p) {
+		return nil
 	}
+
+	if err := db.AutoMigrate(p); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (dao MysqlDao) ListMember(memberType string) ([]string, error) {
 	var member []model.Member
-	if err := dao.db.Table(tableName).Find(&member).Error; err != nil {
+	if err := dao.db.Where("type = ?", memberType).Find(&member).Error; err != nil {
 		return nil, err
 	}
 
@@ -50,63 +78,30 @@ func (dao SqlDao) ListMember(tableName string) ([]string, error) {
 	return result, nil
 }
 
-func (dao SqlDao) UpdateMember(tableName string, member []string) error {
+func (dao MysqlDao) UpdateMember(memberType string, member []string) error {
 	return dao.db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Exec(fmt.Sprintf("DELETE FROM %s", tableName)).Error; err != nil {
+		if err := tx.Where("type = ?", memberType).Where("order <> -1").Delete(&model.Member{}).Error; err != nil {
 			return err
 		}
 
+		members := make([]model.Member, 0, len(member))
 		for i, m := range member {
-			elem := model.Maid{
+			members = append(members, model.Member{
 				Name:  m,
 				Order: i,
-			}
-
-			err := tx.Create(&elem).Error
-			if err != nil {
-				return err
-			}
+				Type:  memberType,
+			})
 		}
-		return nil
-	})
-}
 
-func (dao SqlDao) ListMaid() ([]string, error) {
-	var maids []model.Maid
-	err := dao.db.Find(&maids).Error
-	if err != nil {
-		return nil, err
-	}
-	result := make([]string, 0, len(maids))
-	for i := range maids {
-		result = append(result, maids[i].Name)
-	}
-	return result, nil
-}
-
-func (dao SqlDao) UpdateMaidList(list []string) error {
-	return dao.db.Transaction(func(tx *gorm.DB) error {
-		err := tx.Exec("DELETE FROM maids").Error
-		if err != nil {
+		if err := tx.Create(&members).Error; err != nil {
 			return err
 		}
 
-		for i := range list {
-			elem := model.Maid{
-				Name:  list[i],
-				Order: i,
-			}
-
-			err := tx.Create(&elem).Error
-			if err != nil {
-				return err
-			}
-		}
 		return nil
 	})
 }
 
-func (dao SqlDao) IsAdmin(admin string) (bool, error) {
+func (dao MysqlDao) IsAdmin(admin string) (bool, error) {
 	var count int64
 	err := dao.db.Model(&model.Admin{}).
 		Where("name=?", admin).
@@ -116,7 +111,8 @@ func (dao SqlDao) IsAdmin(admin string) (bool, error) {
 	}
 	return count > 0, nil
 }
-func (dao SqlDao) ListAdmin() ([]string, error) {
+
+func (dao MysqlDao) ListAdmin() ([]string, error) {
 	var admins []model.Admin
 	err := dao.db.Find(&admins).Error
 	if err != nil {
@@ -129,7 +125,7 @@ func (dao SqlDao) ListAdmin() ([]string, error) {
 	return result, nil
 }
 
-func (dao SqlDao) ReverseAdmin(admin string) error {
+func (dao MysqlDao) ReverseAdmin(admin string) error {
 	return dao.db.Transaction(func(tx *gorm.DB) error {
 		var count int64
 		elem := model.Admin{
@@ -160,7 +156,7 @@ func (dao SqlDao) ReverseAdmin(admin string) error {
 	})
 }
 
-func (dao SqlDao) GetStartDate() (time.Time, error) {
+func (dao MysqlDao) GetStartDate() (time.Time, error) {
 	elem := model.Setting{}
 	err := dao.db.First(&elem).Error
 	if err != nil {
@@ -170,7 +166,7 @@ func (dao SqlDao) GetStartDate() (time.Time, error) {
 	return elem.StartTime, nil
 }
 
-func (dao SqlDao) UpdateStartDate(t time.Time) error {
+func (dao MysqlDao) UpdateStartDate(t time.Time) error {
 	return dao.db.Transaction(func(tx *gorm.DB) error {
 		elem := model.Setting{}
 		err := tx.First(&elem).Error

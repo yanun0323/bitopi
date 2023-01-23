@@ -7,6 +7,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/viper v1.13.0
 	github.com/yanun0323/pkg v1.0.3
+	gorm.io/driver/mysql v1.4.5
 	gorm.io/driver/sqlite v1.3.6
 	gorm.io/gorm v1.23.10
 )
@@ -14,6 +15,7 @@ require (
 require (
 	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
+	github.com/go-sql-driver/mysql v1.7.0 // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
