@@ -42,11 +42,7 @@ func initMigration(db *gorm.DB) error {
 		return err
 	}
 
-	if err := migrate(db, &model.Admin{}); err != nil {
-		return err
-	}
-
-	if err := migrate(db, &model.Setting{}); err != nil {
+	if err := migrate(db, &model.StartTime{}); err != nil {
 		return err
 	}
 
@@ -65,9 +61,15 @@ func migrate(db *gorm.DB, p interface{}) error {
 	return nil
 }
 
-func (dao MysqlDao) ListMember(memberType string) ([]string, error) {
+func notFound(err error) bool {
+	return errors.Is(err, gorm.ErrRecordNotFound)
+}
+
+func (dao MysqlDao) ListMember(serviceType string) ([]string, error) {
 	var member []model.Member
-	if err := dao.db.Where("type = ?", memberType).Find(&member).Error; err != nil {
+	err := dao.db.Where("`service` = ?", serviceType).
+		Find(&member).Error
+	if err != nil {
 		return nil, err
 	}
 
@@ -78,19 +80,21 @@ func (dao MysqlDao) ListMember(memberType string) ([]string, error) {
 	return result, nil
 }
 
-func (dao MysqlDao) UpdateMember(memberType string, member []string) error {
+func (dao MysqlDao) UpdateMember(serviceType string, member []string) error {
 	return dao.db.Transaction(func(tx *gorm.DB) error {
 		// FIXME: need to query first and delete object by query result
-		if err := tx.Where("type = ? AND order <> ?", memberType, -1).Delete(&model.Member{}).Error; err != nil {
+		if err := tx.Where("`service` = ?", serviceType).
+			Where("`admin` <> ?", true).
+			Delete(&model.Member{}).Error; err != nil {
 			return err
 		}
 
 		members := make([]model.Member, 0, len(member))
 		for i, m := range member {
 			members = append(members, model.Member{
-				Name:  m,
-				Order: i,
-				Type:  memberType,
+				Name:    m,
+				Order:   i,
+				Service: serviceType,
 			})
 		}
 
@@ -102,10 +106,12 @@ func (dao MysqlDao) UpdateMember(memberType string, member []string) error {
 	})
 }
 
-func (dao MysqlDao) IsAdmin(admin string) (bool, error) {
+func (dao MysqlDao) IsAdmin(name, serviceType string) (bool, error) {
 	var count int64
-	err := dao.db.Model(&model.Admin{}).
-		Where("name=?", admin).
+	err := dao.db.Model(&model.Member{}).
+		Where("`name` = ?", name).
+		Where("`service` = ?", serviceType).
+		Where("`admin` = ?", true).
 		Count(&count).Error
 	if err != nil {
 		return false, err
@@ -113,43 +119,40 @@ func (dao MysqlDao) IsAdmin(admin string) (bool, error) {
 	return count > 0, nil
 }
 
-func (dao MysqlDao) ListAdmin() ([]string, error) {
-	var admins []model.Admin
-	err := dao.db.Find(&admins).Error
+func (dao MysqlDao) ListAdmin(serviceType string) ([]string, error) {
+	var members []model.Member
+	err := dao.db.
+		Where("`service` = ?", serviceType).
+		Where("`admin` = ?", true).
+		Find(&members).Error
 	if err != nil {
 		return nil, err
 	}
-	result := make([]string, 0, len(admins))
-	for i := range admins {
-		result = append(result, admins[i].Name)
+	result := make([]string, 0, len(members))
+	for i := range members {
+		result = append(result, members[i].Name)
 	}
 	return result, nil
 }
 
-func (dao MysqlDao) ReverseAdmin(admin string) error {
+func (dao MysqlDao) SetAdmin(name, serviceType string, admin bool) error {
 	return dao.db.Transaction(func(tx *gorm.DB) error {
-		var count int64
-		elem := model.Admin{
-			Name: admin,
-		}
+		var member model.Member
 
-		err := tx.Model(&elem).
-			Where("name=?", elem.Name).
-			Count(&count).Error
-		if err != nil {
+		err := tx.Where("`name` = ?", name).
+			Where("`service` = ?", serviceType).
+			Where("`order` = ?", -1).
+			First(&member).Error
+		if err != nil && !notFound(err) {
 			return err
 		}
 
-		if count > 0 {
-			err := tx.Where("name = ?", elem.Name).
-				Delete(&model.Admin{}).Error
-			if err != nil {
-				return err
-			}
+		if !admin {
 			return nil
 		}
 
-		err = tx.Create(&elem).Error
+		member.Admin = admin
+		err = tx.Save(&member).Error
 		if err != nil {
 			return err
 		}
@@ -157,26 +160,26 @@ func (dao MysqlDao) ReverseAdmin(admin string) error {
 	})
 }
 
-func (dao MysqlDao) GetStartDate() (time.Time, error) {
-	elem := model.Setting{}
-	err := dao.db.First(&elem).Error
+func (dao MysqlDao) GetStartDate(serviceType string) (time.Time, error) {
+	elem := model.StartTime{}
+	err := dao.db.Where("`service` = ?", serviceType).
+		First(&elem).Error
 	if err != nil {
-		return time.Now(), err
+		return time.Time{}, err
 	}
 
 	return elem.StartTime, nil
 }
 
-func (dao MysqlDao) UpdateStartDate(t time.Time) error {
+func (dao MysqlDao) UpdateStartDate(serviceType string, t time.Time) error {
 	return dao.db.Transaction(func(tx *gorm.DB) error {
-		elem := model.Setting{}
-		err := tx.First(&elem).Error
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			err := tx.Create(&elem).Error
-			if err != nil {
-				return err
-			}
-			return nil
+		elem := model.StartTime{}
+		err := tx.Where("`service` = ?", serviceType).
+			First(&elem).Error
+		if notFound(err) {
+			elem.Service = serviceType
+			elem.StartTime = t
+			return tx.Create(&elem).Error
 		}
 
 		if err != nil {

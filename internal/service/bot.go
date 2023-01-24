@@ -159,17 +159,11 @@ func (bot *SlackBot) GetDutyMember() (string, []string, error) {
 }
 
 func (bot *SlackBot) getStartDate() time.Time {
-	// XXX: Remove me
-	return bot.DefaultStartDate
-
-	// TODO: Add service start date key in database
-	// bot.repo.GetStartDate(bot.MemberTableName)
-	// Table be like: | service_name | date |
-	startDate, err := bot.repo.GetStartDate()
+	startDate, err := bot.repo.GetStartDate(bot.Name)
 	if err != nil {
 		bot.l.Warn("get start date error, %+v", err)
 		bot.l.Warn("reset start date to database")
-		bot.repo.UpdateStartDate(bot.DefaultStartDate)
+		bot.repo.UpdateStartDate(bot.Name, bot.DefaultStartDate)
 		startDate = bot.DefaultStartDate
 	}
 	return startDate
