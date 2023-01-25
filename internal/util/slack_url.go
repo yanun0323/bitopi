@@ -3,9 +3,10 @@ package util
 type Url string
 
 const (
-	PostChat    Url = "https://slack.com/api/chat.postMessage"
-	PostView    Url = "https://slack.com/api/views.open"
-	PostCommand Url = ""
+	PostChat     Url = "https://slack.com/api/chat.postMessage"
+	PostView     Url = "https://slack.com/api/views.open"
+	PostCommand  Url = ""
+	GetPermalink Url = "https://slack.com/api/chat.getPermalink"
 )
 
 func NewUrl(url string) Url {

@@ -5,11 +5,13 @@ import (
 	"bitopi/internal/util"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/labstack/echo/v4"
+	"github.com/pkg/errors"
 	"github.com/yanun0323/pkg/logs"
 )
 
@@ -106,25 +108,34 @@ func (bot *SlackBot) eventCallbackResponse(c echo.Context) interface{} {
 	notifier := util.NewSlackNotifier(bot.Token)
 
 	if err := bot.sendToSlack(notifier, util.SlackReplyMsg{
-		Text:        replyText,
-		Channel:     slackEventApi.Event.Channel,
-		TimeStamp:   slackEventApi.Event.TimeStamp,
-		Attachments: []map[string]string{},
+		Text:      replyText,
+		Channel:   slackEventApi.Event.Channel,
+		TimeStamp: slackEventApi.Event.TimeStamp,
 	}); err != nil {
 		return err
 	}
 
-	directMessageText := fmt.Sprintf("<#%s>\n```%s```\nhttps://bitoexworkspace.slack.com/archives/%s/p%s",
-		slackEventApi.Event.Channel,
-		slackEventApi.Event.Text,
-		slackEventApi.Event.Channel,
-		strings.ReplaceAll(slackEventApi.Event.EventTimeStamp, ".", ""))
+	link, err := bot.getPermalink(notifier, slackEventApi.Event.Channel, slackEventApi.Event.EventTimeStamp)
+	if err != nil {
+		return err
+	}
 
-	if err := bot.sendToSlack(notifier, util.SlackReplyMsg{
-		Text:        directMessageText,
-		Channel:     dutyMember[2 : len(dutyMember)-1],
-		Attachments: []map[string]string{},
-	}); err != nil {
+	directMessageText := fmt.Sprintf("*<%s|新訊息> 來自 <@%s> <#%s>*",
+		link,
+		slackEventApi.Event.User,
+		slackEventApi.Event.Channel,
+	)
+
+	msg := util.SlackReplyMsg{
+		Text:    directMessageText,
+		Channel: dutyMember[2 : len(dutyMember)-1],
+	}.AddAttachments(
+		"text", slackEventApi.Event.Text,
+		"actions", []model.SlackMessageButton{
+			model.NewMessageActionButton("primary", "done", "完成並刪除此通知"),
+		})
+
+	if err := bot.sendToSlack(notifier, msg); err != nil {
 		return err
 	}
 
@@ -183,12 +194,29 @@ func (bot *SlackBot) listMember() ([]string, error) {
 }
 
 func (bot *SlackBot) sendToSlack(notifier *util.SlackNotifier, msg util.SlackReplyMsg) error {
-	response, code, err := notifier.Send(bot.ctx, util.PostChat, msg)
+	_, _, err := notifier.Send(bot.ctx, http.MethodPost, util.PostChat, msg)
 	if err != nil {
-		bot.l.Warnf("send message to slack error, %+v", err)
 		return err
 	}
 
-	bot.l.Debugf("code: %d, response: %s", code, string(response))
 	return nil
+}
+
+func (bot *SlackBot) getPermalink(notifier *util.SlackNotifier, channel, messageTimestamp string) (string, error) {
+	url := fmt.Sprintf("%s?channel=%s&message_ts=%s", util.GetPermalink, channel, messageTimestamp)
+	response, _, err := notifier.Send(bot.ctx, http.MethodGet, util.Url(url), util.SlackMsg{})
+	if err != nil {
+		return "", err
+	}
+
+	permalink := model.SlackPermalinkResponse{}
+	if err := json.Unmarshal(response, &permalink); err != nil {
+		return "", err
+	}
+
+	if len(permalink.Error) != 0 {
+		return "", errors.New(permalink.Error)
+	}
+
+	return permalink.Permalink, nil
 }

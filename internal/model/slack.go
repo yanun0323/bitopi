@@ -75,3 +75,42 @@ type ShortcutUser struct {
 	UserName string `json:"username"`
 	TeamID   string `json:"team_id"`
 }
+
+type SlackTextObject struct {
+	Type string `json:"type"`
+	Text string `json:"text"`
+}
+
+type SlackMessageButton struct {
+	Name  string `json:"name"`
+	Text  string `json:"text"`
+	Style string `json:"style"` /* default, primary, danger */
+	Type  string `json:"type"`
+	Value string `json:"value"`
+}
+
+/*
+style: default, primary, danger
+*/
+func NewMessageActionButton(style, value, text string) SlackMessageButton {
+	return SlackMessageButton{
+		Name:  "direct_msg_action",
+		Text:  text,
+		Style: style,
+		Type:  "button",
+		Value: value,
+	}
+}
+
+type SlackPermalinkRequest struct {
+	Token            string `json:"token"`
+	Channel          string `json:"channel"`
+	MessageTimestamp string `json:"message_ts"`
+}
+
+type SlackPermalinkResponse struct {
+	OK        bool   `json:"ok"`
+	Channel   string `json:"channel"`
+	Permalink string `json:"permalink"`
+	Error     string `json:"error"`
+}

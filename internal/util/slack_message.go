@@ -1,6 +1,8 @@
 package util
 
-import "encoding/json"
+import (
+	"encoding/json"
+)
 
 type Messenger interface {
 	Marshal() ([]byte, error)
@@ -18,7 +20,7 @@ type SlackMsg struct {
 	Text        string              `json:"text"`
 	Channel     string              `json:"channel"`
 	UserName    string              `json:"username"`
-	Attachments []map[string]string `json:"attachments"`
+	Attachments []map[string]string `json:"attachments,omitempty"`
 }
 
 func (msg *SlackMsg) AddAttachments(vs ...string) *SlackMsg {
@@ -38,26 +40,36 @@ func (msg SlackMsg) Marshal() ([]byte, error) {
 }
 
 type SlackReplyMsg struct {
-	Text        string              `json:"text"`
-	Channel     string              `json:"channel"`
-	UserName    string              `json:"username"`
-	TimeStamp   string              `json:"thread_ts"`
-	Attachments []map[string]string `json:"attachments"`
+	Text        string                   `json:"text"`
+	Channel     string                   `json:"channel"`
+	UserName    string                   `json:"username"`
+	TimeStamp   string                   `json:"thread_ts"`
+	Attachments []map[string]interface{} `json:"attachments,omitempty"`
 }
 
-func (msg *SlackReplyMsg) AddAttachments(vs ...string) *SlackReplyMsg {
+func (msg SlackReplyMsg) AddAttachments(vs ...interface{}) SlackReplyMsg {
 	if cap(msg.Attachments) == 0 {
-		msg.Attachments = make([]map[string]string, 0, 1)
+		msg.Attachments = make([]map[string]interface{}, 0, 1)
 	}
-	data := make(map[string]string)
+	data := make(map[string]interface{})
 	for i := 0; i < len(vs); i += 2 {
-		data[vs[i]] = vs[i+1]
+		data[vs[i].(string)] = vs[i+1]
 	}
 	msg.Attachments = append(msg.Attachments, data)
 	return msg
 }
 
 func (msg SlackReplyMsg) Marshal() ([]byte, error) {
+
+	return json.Marshal(msg)
+}
+
+type SlackPermalinkRequest struct {
+	Channel          string `json:"channel"`
+	MessageTimestamp string `json:"message_ts"`
+}
+
+func (msg SlackPermalinkRequest) Marshal() ([]byte, error) {
 	return json.Marshal(msg)
 }
 

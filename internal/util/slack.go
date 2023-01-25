@@ -23,7 +23,7 @@ type SlackNotifier struct {
 	httpClient *http.Client
 }
 
-func (s SlackNotifier) Send(ctx context.Context, url Url, msg Messenger) ([]byte, int, error) {
+func (s SlackNotifier) Send(ctx context.Context, method string, url Url, msg Messenger) ([]byte, int, error) {
 	if len(url) == 0 {
 		return nil, 0, errors.New("empty url")
 	}
@@ -32,7 +32,7 @@ func (s SlackNotifier) Send(ctx context.Context, url Url, msg Messenger) ([]byte
 		return nil, 0, errors.New("empty token")
 	}
 
-	req, err := s.postRequest(s.token, msg, url)
+	req, err := s.request(s.token, msg, method, url)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -50,12 +50,12 @@ func (s SlackNotifier) Send(ctx context.Context, url Url, msg Messenger) ([]byte
 	return respBody, resp.StatusCode, nil
 }
 
-func (notifier SlackNotifier) postRequest(token string, msg Messenger, url Url) (*http.Request, error) {
+func (notifier SlackNotifier) request(token string, msg Messenger, method string, url Url) (*http.Request, error) {
 	reqBody, err := msg.Marshal()
 	if err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequest(http.MethodPost, url.String(), bytes.NewReader(reqBody))
+	req, err := http.NewRequest(method, url.String(), bytes.NewReader(reqBody))
 	if err != nil {
 		return nil, err
 	}
