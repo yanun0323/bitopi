@@ -2,9 +2,10 @@ package mysql
 
 import (
 	"bitopi/internal/model"
-	"errors"
 	"fmt"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/spf13/viper"
 	"gorm.io/driver/mysql"
@@ -46,6 +47,14 @@ func initMigration(db *gorm.DB) error {
 		return err
 	}
 
+	if err := migrate(db, &model.MentionRecord{}); err != nil {
+		return err
+	}
+
+	if err := migrate(db, &model.SlackReplyMessage{}); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -54,20 +63,16 @@ func migrate(db *gorm.DB, p interface{}) error {
 		return nil
 	}
 
-	if err := db.AutoMigrate(p); err != nil {
-		return err
-	}
-
-	return nil
+	return db.AutoMigrate(p)
 }
 
 func notFound(err error) bool {
 	return errors.Is(err, gorm.ErrRecordNotFound)
 }
 
-func (dao MysqlDao) ListMember(serviceType string) ([]string, error) {
+func (dao MysqlDao) ListMember(service string) ([]string, error) {
 	var member []model.Member
-	err := dao.db.Where("`service` = ?", serviceType).
+	err := dao.db.Where("`service` = ?", service).
 		Find(&member).Error
 	if err != nil {
 		return nil, err
@@ -75,15 +80,15 @@ func (dao MysqlDao) ListMember(serviceType string) ([]string, error) {
 
 	result := make([]string, 0, len(member))
 	for _, m := range member {
-		result = append(result, m.Name)
+		result = append(result, m.UserID)
 	}
 	return result, nil
 }
 
-func (dao MysqlDao) UpdateMember(serviceType string, member []string) error {
+func (dao MysqlDao) UpdateMember(service string, member []model.Member) error {
 	return dao.db.Transaction(func(tx *gorm.DB) error {
 		// FIXME: need to query first and delete object by query result
-		if err := tx.Where("`service` = ?", serviceType).
+		if err := tx.Where("`service` = ?", service).
 			Where("`admin` <> ?", true).
 			Delete(&model.Member{}).Error; err != nil {
 			return err
@@ -92,9 +97,10 @@ func (dao MysqlDao) UpdateMember(serviceType string, member []string) error {
 		members := make([]model.Member, 0, len(member))
 		for i, m := range member {
 			members = append(members, model.Member{
-				Name:    m,
-				Order:   i,
-				Service: serviceType,
+				UserID:   m.UserID,
+				UserName: m.UserName,
+				Order:    i,
+				Service:  service,
 			})
 		}
 
@@ -106,11 +112,11 @@ func (dao MysqlDao) UpdateMember(serviceType string, member []string) error {
 	})
 }
 
-func (dao MysqlDao) IsAdmin(name, serviceType string) (bool, error) {
+func (dao MysqlDao) IsAdmin(name, service string) (bool, error) {
 	var count int64
 	err := dao.db.Model(&model.Member{}).
 		Where("`name` = ?", name).
-		Where("`service` = ?", serviceType).
+		Where("`service` = ?", service).
 		Where("`admin` = ?", true).
 		Count(&count).Error
 	if err != nil {
@@ -119,10 +125,10 @@ func (dao MysqlDao) IsAdmin(name, serviceType string) (bool, error) {
 	return count > 0, nil
 }
 
-func (dao MysqlDao) ListAdmin(serviceType string) ([]string, error) {
+func (dao MysqlDao) ListAdmin(service string) ([]string, error) {
 	var members []model.Member
 	err := dao.db.
-		Where("`service` = ?", serviceType).
+		Where("`service` = ?", service).
 		Where("`admin` = ?", true).
 		Find(&members).Error
 	if err != nil {
@@ -130,17 +136,17 @@ func (dao MysqlDao) ListAdmin(serviceType string) ([]string, error) {
 	}
 	result := make([]string, 0, len(members))
 	for i := range members {
-		result = append(result, members[i].Name)
+		result = append(result, members[i].UserID)
 	}
 	return result, nil
 }
 
-func (dao MysqlDao) SetAdmin(name, serviceType string, admin bool) error {
+func (dao MysqlDao) SetAdmin(name, service string, admin bool) error {
 	return dao.db.Transaction(func(tx *gorm.DB) error {
 		var member model.Member
 
 		err := tx.Where("`name` = ?", name).
-			Where("`service` = ?", serviceType).
+			Where("`service` = ?", service).
 			Where("`order` = ?", -1).
 			First(&member).Error
 		if err != nil && !notFound(err) {
@@ -160,9 +166,9 @@ func (dao MysqlDao) SetAdmin(name, serviceType string, admin bool) error {
 	})
 }
 
-func (dao MysqlDao) GetStartDate(serviceType string) (time.Time, error) {
+func (dao MysqlDao) GetStartDate(service string) (time.Time, error) {
 	elem := model.StartTime{}
-	err := dao.db.Where("`service` = ?", serviceType).
+	err := dao.db.Where("`service` = ?", service).
 		First(&elem).Error
 	if err != nil {
 		return time.Time{}, err
@@ -171,13 +177,13 @@ func (dao MysqlDao) GetStartDate(serviceType string) (time.Time, error) {
 	return elem.StartTime, nil
 }
 
-func (dao MysqlDao) UpdateStartDate(serviceType string, t time.Time) error {
+func (dao MysqlDao) UpdateStartDate(service string, t time.Time) error {
 	return dao.db.Transaction(func(tx *gorm.DB) error {
 		elem := model.StartTime{}
-		err := tx.Where("`service` = ?", serviceType).
+		err := tx.Where("`service` = ?", service).
 			First(&elem).Error
 		if notFound(err) {
-			elem.Service = serviceType
+			elem.Service = service
 			elem.StartTime = t
 			return tx.Create(&elem).Error
 		}
@@ -193,5 +199,66 @@ func (dao MysqlDao) UpdateStartDate(serviceType string, t time.Time) error {
 		}
 
 		return nil
+	})
+}
+
+func (dao MysqlDao) FindOrCreateMentionRecord(service, channel, timestamp string) (bool, error) {
+	found := false
+	err := dao.db.Transaction(func(tx *gorm.DB) error {
+		record := model.MentionRecord{}
+		err := tx.Where("`service` = ?", service).
+			Where("`channel` = ?", channel).
+			Where("`timestamp` = ?", timestamp).
+			First(&record).Error
+		if err == nil {
+			found = true
+			return nil
+		}
+
+		if !notFound(err) {
+			return errors.Wrap(err, "query")
+		}
+
+		record.Service = service
+		record.Channel = channel
+		record.Timestamp = timestamp
+		record.CreateAtu = time.Now().Unix()
+		if err := tx.Create(&record).Error; err != nil {
+			return errors.Wrap(err, "create")
+		}
+		return nil
+	})
+	return found, err
+}
+
+func (dao MysqlDao) GetReplyMessage(service string) (model.SlackReplyMessage, error) {
+	msg := model.SlackReplyMessage{}
+	if err := dao.db.Where("`service` = ?", service).First(&msg).Error; err != nil && !notFound(err) {
+		return model.SlackReplyMessage{}, err
+	}
+	return msg, nil
+}
+
+func (dao MysqlDao) SetReplyMessage(service, message string, multiMember bool) error {
+	return dao.db.Transaction(func(tx *gorm.DB) error {
+		msg := model.SlackReplyMessage{}
+		err := tx.Where("`service` = ?", service).First(&msg).Error
+		if err == nil {
+			msg.Message = message
+			msg.MultiMember = multiMember
+			return tx.Save(&msg).Error
+		}
+
+		if !notFound(err) {
+			return err
+		}
+
+		msg = model.SlackReplyMessage{
+			Service:     service,
+			Message:     message,
+			MultiMember: multiMember,
+		}
+
+		return tx.Create(&msg).Error
 	})
 }

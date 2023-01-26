@@ -19,7 +19,7 @@ func (msg *GeneralMsg) Marshal() ([]byte, error) {
 type SlackMsg struct {
 	Text        string              `json:"text"`
 	Channel     string              `json:"channel"`
-	UserName    string              `json:"username"`
+	UserName    string              `json:"username,omitempty"`
 	Attachments []map[string]string `json:"attachments,omitempty"`
 }
 
@@ -42,7 +42,7 @@ func (msg SlackMsg) Marshal() ([]byte, error) {
 type SlackReplyMsg struct {
 	Text        string                   `json:"text"`
 	Channel     string                   `json:"channel"`
-	UserName    string                   `json:"username"`
+	UserName    string                   `json:"username,omitempty"`
 	TimeStamp   string                   `json:"thread_ts"`
 	Attachments []map[string]interface{} `json:"attachments,omitempty"`
 }
@@ -60,7 +60,6 @@ func (msg SlackReplyMsg) AddAttachments(vs ...interface{}) SlackReplyMsg {
 }
 
 func (msg SlackReplyMsg) Marshal() ([]byte, error) {
-
 	return json.Marshal(msg)
 }
 
@@ -226,4 +225,13 @@ func GetInteractor(triggerID string) Messenger {
 		]`,
 		},
 	}
+}
+
+type SlackSimpleMsg struct {
+	Channel   string `json:"channel"`
+	Timestamp string `json:"ts"`
+}
+
+func (msg SlackSimpleMsg) Marshal() ([]byte, error) {
+	return json.Marshal(msg)
 }

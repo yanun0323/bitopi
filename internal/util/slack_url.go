@@ -5,8 +5,8 @@ type Url string
 const (
 	PostChat     Url = "https://slack.com/api/chat.postMessage"
 	PostView     Url = "https://slack.com/api/views.open"
-	PostCommand  Url = ""
 	GetPermalink Url = "https://slack.com/api/chat.getPermalink"
+	GetThread    Url = "https://slack.com/api/conversations.replies"
 )
 
 func NewUrl(url string) Url {

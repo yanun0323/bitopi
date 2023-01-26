@@ -114,3 +114,7 @@ type SlackPermalinkResponse struct {
 	Permalink string `json:"permalink"`
 	Error     string `json:"error"`
 }
+
+type SlackActionPayload struct {
+	Payload map[string]interface{} `json:"payload"`
+}

@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/pkg/errors"
+	"github.com/yanun0323/pkg/logs"
 )
 
 type NotifierType uint8
@@ -55,6 +56,7 @@ func (notifier SlackNotifier) request(token string, msg Messenger, method string
 	if err != nil {
 		return nil, err
 	}
+	logs.New("slack notifier", 2).Debugf("request body:\n%s", string(reqBody))
 	req, err := http.NewRequest(method, url.String(), bytes.NewReader(reqBody))
 	if err != nil {
 		return nil, err
