@@ -48,7 +48,7 @@ func setRouters(router *echo.Group, svc service.Service) {
 		DefaultStartDate: util.NewDate(2022, 11, 27),
 		DefaultMemberList: []model.Member{
 			{UserID: "U02223HG26L", UserName: "Rafeni"},
-			{UserID: "U01THK4U2MD", UserName: "Momo "},
+			{UserID: "U01THK4U2MD", UserName: "Momo"},
 		},
 		DefaultReplyMessage: "請稍候片刻，%s Support PM %s 將盡快為您服務 :smiling_face_with_3_hearts:",
 	})
