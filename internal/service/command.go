@@ -56,16 +56,12 @@ func (svc *SlackCommand) Handler(c echo.Context) error {
 	// }
 
 	commands := svc.splitRequestText(payload.Get("text"))
-	if len(commands) < 2 {
+	if len(commands) == 0 {
 		return svc.sendCommandReply(callbackUrl, "需要輸入指令，執行 `help` 取得更多資訊")
 	}
 
-	if commands[0] != "cmd" {
-		return svc.sendCommandReply(callbackUrl, fmt.Sprintf("找不到指令 `%s`，執行 `help` 取得更多資訊", commands[0]))
-	}
-
 	// TODO: Handle command
-	switch cmd := strings.ToLower(commands[1]); cmd {
+	switch cmd := strings.ToLower(commands[0]); cmd {
 	case "clear":
 		if err := svc.cmdClearAllMsgReply(directChannel); err != nil {
 			return svc.sendCommandReply(callbackUrl, fmt.Sprintf("執行指令行為 `%s` 錯誤，%+v", cmd, err))
