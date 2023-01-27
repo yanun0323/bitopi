@@ -1,9 +1,3 @@
-token:
-  maid: #slack token
-  devops: #slack token
-  rails: #slack token
-  pm: #slack token
-  
 # 0 = "info"
 # 1 = "trace"
 # 2 = "debug"
@@ -11,3 +5,25 @@ token:
 # 4 = "error"
 # 5 = "fatal"
 log.level: 0
+
+mysql:
+  username: test
+  password: test
+  host: 127.0.0.1
+  port: 3306
+  database: test
+
+maid:
+  token: #slack token
+
+devops:
+  token: #slack token
+
+rails:
+  token: #slack token
+
+pm:
+  token: #slack token
+
+test:
+  token: #slack token

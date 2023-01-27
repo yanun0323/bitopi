@@ -37,9 +37,9 @@ func TestDeleteBotDirectMessage(t *testing.T) {
 
 	for _, msg := range data["messages"].([]interface{}) {
 		ts := msg.(map[string]interface{})["ts"].(string)
-		res, _, err := notifier.Send(ctx, http.MethodPost, util.Url("https://slack.com/api/chat.delete"), &util.SlackSimpleMsg{
-			Channel:   "D03C5N7U2LA",
-			Timestamp: ts,
+		res, _, err := notifier.Send(ctx, http.MethodPost, util.Url("https://slack.com/api/chat.delete"), &util.GeneralMsg{
+			Channel: "D03C5N7U2LA",
+			TS:      ts,
 		})
 
 		if err != nil {

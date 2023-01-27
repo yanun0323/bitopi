@@ -9,7 +9,9 @@ type Messenger interface {
 }
 
 type GeneralMsg struct {
-	Text string `json:"text,omitempty"`
+	Text    string `json:"text,omitempty"`
+	Channel string `json:"channel,omitempty"`
+	TS      string `json:"ts,omitempty"`
 }
 
 func (msg *GeneralMsg) Marshal() ([]byte, error) {
@@ -225,13 +227,4 @@ func GetInteractor(triggerID string) Messenger {
 		]`,
 		},
 	}
-}
-
-type SlackSimpleMsg struct {
-	Channel   string `json:"channel"`
-	Timestamp string `json:"ts"`
-}
-
-func (msg SlackSimpleMsg) Marshal() ([]byte, error) {
-	return json.Marshal(msg)
 }
