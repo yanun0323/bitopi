@@ -25,7 +25,7 @@ func HttpRequest(opt HttpRequestOption) ([]byte, int, error) {
 	}
 
 	if len(opt.Token) != 0 {
-		req.Header.Set("Authorization", "Bearer "+opt.Token) //"Bearer "+viper.GetString("token.maid")
+		req.Header.Set("Authorization", "Bearer "+opt.Token)
 	}
 
 	res, err := http.DefaultClient.Do(req)
