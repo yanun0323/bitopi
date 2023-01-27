@@ -12,16 +12,16 @@ import (
 
 type NotifierType uint8
 
-func NewSlackNotifier(token string) *SlackNotifier {
-	return &SlackNotifier{
+func NewSlackNotifier(token string) SlackNotifier {
+	return SlackNotifier{
 		token:      token,
-		httpClient: http.DefaultClient,
+		httpClient: http.Client{},
 	}
 }
 
 type SlackNotifier struct {
 	token      string
-	httpClient *http.Client
+	httpClient http.Client
 }
 
 func (s SlackNotifier) Send(ctx context.Context, method string, url Url, msg Messenger) ([]byte, int, error) {

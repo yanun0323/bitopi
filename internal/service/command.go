@@ -63,9 +63,12 @@ func (svc *SlackCommand) Handler(c echo.Context) error {
 	// TODO: Handle command
 	switch cmd := strings.ToLower(commands[0]); cmd {
 	case "clear":
-		if err := svc.cmdClearAllMsgReply(directChannel); err != nil {
-			return svc.sendCommandReply(callbackUrl, fmt.Sprintf("執行指令行為 `%s` 錯誤，%+v", cmd, err))
-		}
+		go func() {
+			err := svc.cmdClearAllMsgReply(directChannel)
+			if err != nil {
+				svc.l.Errorf("執行指令行為 `%s` 錯誤，%+v", cmd, err)
+			}
+		}()
 		return nil
 	case "help":
 		// TODO: Handle help
@@ -155,7 +158,7 @@ func (svc *SlackCommand) cmdClearAllMsgReply(directChannel string) error {
 
 	for _, msg := range data["messages"].([]interface{}) {
 		ts := msg.(map[string]interface{})["ts"].(string)
-		res, _, err := notifier.Send(svc.ctx, http.MethodPost, util.Url("https://slack.com/api/chat.delete"), &util.GeneralMsg{
+		_, _, err := notifier.Send(svc.ctx, http.MethodPost, util.Url("https://slack.com/api/chat.delete"), &util.GeneralMsg{
 			Channel: directChannel,
 			TS:      ts,
 		})
@@ -163,8 +166,6 @@ func (svc *SlackCommand) cmdClearAllMsgReply(directChannel string) error {
 		if err != nil {
 			return err
 		}
-
-		svc.l.Debugf("%s", string(res))
 	}
 
 	return nil

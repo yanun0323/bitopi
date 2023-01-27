@@ -114,19 +114,22 @@ func (svc *SlackBot) eventCallbackResponse(c echo.Context) interface{} {
 	}
 
 	notifier := util.NewSlackNotifier(svc.Token)
-	if err := svc.sendMentionReply(notifier, slackEventApi, dutyMember, leftMembers, rMsg); err != nil {
-		svc.l.Errorf("send mention reply error, %+v", err)
-		return nil
-	}
+	go func() {
+		err := svc.sendMentionReply(notifier, slackEventApi, dutyMember, leftMembers, rMsg)
+		if err != nil {
+			svc.l.Errorf("send mention reply error, %+v", err)
+		}
+	}()
 
-	DMReceiver := []string{dutyMember}
-	if rMsg.MultiMember {
-		DMReceiver = append(DMReceiver, leftMembers...)
-	}
-	if err := svc.sendDirectMessage(notifier, slackEventApi, DMReceiver); err != nil {
-		svc.l.Errorf("send direct message error, %+v", err)
-		return nil
-	}
+	go func() {
+		DMReceiver := []string{dutyMember}
+		if rMsg.MultiMember {
+			DMReceiver = append(DMReceiver, leftMembers...)
+		}
+		if err := svc.sendDirectMessage(notifier, slackEventApi, DMReceiver); err != nil {
+			svc.l.Errorf("send direct message error, %+v", err)
+		}
+	}()
 
 	return nil
 }
@@ -210,7 +213,7 @@ func (svc *SlackBot) listMember() ([]string, error) {
 	return result, nil
 }
 
-func (svc *SlackBot) sendToSlack(notifier *util.SlackNotifier, msg util.Messenger) error {
+func (svc *SlackBot) sendToSlack(notifier util.SlackNotifier, msg util.Messenger) error {
 	_, _, err := notifier.Send(svc.ctx, http.MethodPost, util.PostChat, msg)
 	if err != nil {
 		return err
@@ -219,7 +222,7 @@ func (svc *SlackBot) sendToSlack(notifier *util.SlackNotifier, msg util.Messenge
 	return nil
 }
 
-func (svc *SlackBot) getPermalink(notifier *util.SlackNotifier, channel, messageTimestamp string) (string, error) {
+func (svc *SlackBot) getPermalink(notifier util.SlackNotifier, channel, messageTimestamp string) (string, error) {
 	url := fmt.Sprintf("%s?channel=%s&message_ts=%s", util.GetPermalink, channel, messageTimestamp)
 	response, _, err := notifier.Send(svc.ctx, http.MethodGet, util.Url(url), util.SlackMsg{})
 	if err != nil {
@@ -238,7 +241,7 @@ func (svc *SlackBot) getPermalink(notifier *util.SlackNotifier, channel, message
 	return permalink.Permalink, nil
 }
 
-func (svc *SlackBot) sendMentionReply(notifier *util.SlackNotifier, slackEventApi model.SlackEventAPI, dutyMember string, leftMembers []string, rMsg model.SlackReplyMessage) error {
+func (svc *SlackBot) sendMentionReply(notifier util.SlackNotifier, slackEventApi model.SlackEventAPI, dutyMember string, leftMembers []string, rMsg model.SlackReplyMessage) error {
 	replyText := ""
 	if rMsg.MultiMember {
 		replyText = fmt.Sprintf(rMsg.Message, dutyMember, strings.Join(leftMembers, " "))
@@ -256,7 +259,7 @@ func (svc *SlackBot) sendMentionReply(notifier *util.SlackNotifier, slackEventAp
 	return nil
 }
 
-func (svc *SlackBot) sendDirectMessage(notifier *util.SlackNotifier, slackEventApi model.SlackEventAPI, members []string) error {
+func (svc *SlackBot) sendDirectMessage(notifier util.SlackNotifier, slackEventApi model.SlackEventAPI, members []string) error {
 	link, err := svc.getPermalink(notifier, slackEventApi.Event.Channel, slackEventApi.Event.EventTimeStamp)
 	if err != nil {
 		return err
@@ -273,7 +276,8 @@ func (svc *SlackBot) sendDirectMessage(notifier *util.SlackNotifier, slackEventA
 			Text:    directMessageText,
 			Channel: member[2 : len(member)-1],
 		}.AddAttachments(
-			"text", slackEventApi.Event.Text,
+			"text", "",
+			"footer", slackEventApi.Event.Text+" ",
 			"callback_id", fmt.Sprintf("%s_direct_message_action", svc.Name),
 			"actions", []model.SlackMessageButton{
 				model.NewMessageActionButton("primary", "danger", "刪除通知"),
