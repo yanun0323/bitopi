@@ -285,5 +285,3 @@ func (svc *SlackBot) sendDirectMessage(notifier *util.SlackNotifier, slackEventA
 	}
 	return nil
 }
-
-// TODO: Delete All Direct Message From Bot
