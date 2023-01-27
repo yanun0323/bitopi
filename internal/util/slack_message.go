@@ -9,7 +9,7 @@ type Messenger interface {
 }
 
 type GeneralMsg struct {
-	Text string `json:"text"`
+	Text string `json:"text,omitempty"`
 }
 
 func (msg *GeneralMsg) Marshal() ([]byte, error) {

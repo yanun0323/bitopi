@@ -19,11 +19,11 @@ func NewAction(name string, bot SlackBot) SlackAction {
 	}
 }
 
-func (act *SlackAction) Handler(c echo.Context) error {
-	return act.ok(c, act.eventCallbackResponse(c))
+func (svc *SlackAction) Handler(c echo.Context) error {
+	return svc.ok(c, svc.eventCallbackResponse(c))
 }
 
-func (act *SlackAction) eventCallbackResponse(c echo.Context) interface{} {
+func (svc *SlackAction) eventCallbackResponse(c echo.Context) interface{} {
 	return struct {
 		DeleteOriginal bool `json:"delete_original"`
 	}{

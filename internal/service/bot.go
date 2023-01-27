@@ -27,6 +27,7 @@ type SlackBot struct {
 }
 
 type SlackBotOption struct {
+	Name                string
 	Token               string
 	DefaultStartDate    time.Time
 	DefaultMemberList   []model.Member
@@ -34,32 +35,32 @@ type SlackBotOption struct {
 	DefaultMultiMember  bool
 }
 
-func NewBot(name string, svc Service, opt SlackBotOption) SlackBot {
-	svc.l = logs.New(name, svc.logLevel)
+func NewBot(svc Service, opt SlackBotOption) SlackBot {
+	svc.l = logs.New(opt.Name, svc.logLevel)
 	return SlackBot{
-		Name:           name,
+		Name:           opt.Name,
 		Service:        svc,
 		SlackBotOption: opt,
 	}
 }
 
-func (bot *SlackBot) Handler(c echo.Context) error {
-	requestType := bot.parseSlackRequestType(c)
+func (svc *SlackBot) Handler(c echo.Context) error {
+	requestType := svc.parseSlackRequestType(c)
 	if len(requestType) == 0 {
-		return bot.ok(c)
+		return svc.ok(c)
 	}
 
 	if requestType == _eventVerification {
-		return bot.ok(c, bot.verificationSlackResponse(c))
+		return svc.ok(c, svc.verificationSlackResponse(c))
 	}
 
-	return bot.ok(c, bot.eventCallbackResponse(c))
+	return svc.ok(c, svc.eventCallbackResponse(c))
 }
 
-func (bot *SlackBot) parseSlackRequestType(c echo.Context) string {
+func (svc *SlackBot) parseSlackRequestType(c echo.Context) string {
 	length, err := strconv.Atoi(c.Request().Header["Content-Length"][0])
 	if err != nil {
-		bot.l.Errorf("convert request header 'Content-Length' error, %+v", err)
+		svc.l.Errorf("convert request header 'Content-Length' error, %+v", err)
 		return ""
 	}
 
@@ -70,10 +71,10 @@ func (bot *SlackBot) parseSlackRequestType(c echo.Context) string {
 	return _eventCallback
 }
 
-func (bot *SlackBot) verificationSlackResponse(c echo.Context) interface{} {
+func (svc *SlackBot) verificationSlackResponse(c echo.Context) interface{} {
 	check := model.SlackTypeCheck{}
 	if err := c.Bind(&check); err != nil {
-		bot.l.Errorf("bind slack type check error, %+v", err)
+		svc.l.Errorf("bind slack type check error, %+v", err)
 		return nil
 	}
 
@@ -82,39 +83,39 @@ func (bot *SlackBot) verificationSlackResponse(c echo.Context) interface{} {
 	}
 }
 
-func (bot *SlackBot) eventCallbackResponse(c echo.Context) interface{} {
+func (svc *SlackBot) eventCallbackResponse(c echo.Context) interface{} {
 	slackEventApi := model.SlackEventAPI{}
 	if err := json.NewDecoder(c.Request().Body).Decode(&slackEventApi); err != nil {
-		bot.l.Errorf("decode json error, %+v", err)
+		svc.l.Errorf("decode json error, %+v", err)
 		return nil
 	}
-	bot.l.Debugf("slack event api: %+v", slackEventApi)
+	svc.l.Debugf("slack event api: %+v", slackEventApi)
 
-	exist, err := bot.recordMention(slackEventApi)
+	exist, err := svc.recordMention(slackEventApi)
 	if err != nil {
-		bot.l.Errorf("record mention error, %+v", err)
+		svc.l.Errorf("record mention error, %+v", err)
 		return nil
 	}
 
 	if exist {
-		bot.l.Warnf("message was already replied, user: %s, channel: %s", slackEventApi.Event.User, slackEventApi.Event.Channel)
+		svc.l.Warnf("message was already replied, user: %s, channel: %s", slackEventApi.Event.User, slackEventApi.Event.Channel)
 		return nil
 	}
 
-	dutyMember, leftMembers, err := bot.getDutyMember()
+	dutyMember, leftMembers, err := svc.getDutyMember()
 	if err != nil {
-		bot.l.Errorf("get duty member error, %+v", err)
+		svc.l.Errorf("get duty member error, %+v", err)
 		return nil
 	}
 
-	rMsg, err := bot.getReplyMessage()
+	rMsg, err := svc.getReplyMessage()
 	if err != nil {
 		return err
 	}
 
-	notifier := util.NewSlackNotifier(bot.Token)
-	if err := bot.sendMentionReply(notifier, slackEventApi, dutyMember, leftMembers, rMsg); err != nil {
-		bot.l.Errorf("send mention reply error, %+v", err)
+	notifier := util.NewSlackNotifier(svc.Token)
+	if err := svc.sendMentionReply(notifier, slackEventApi, dutyMember, leftMembers, rMsg); err != nil {
+		svc.l.Errorf("send mention reply error, %+v", err)
 		return nil
 	}
 
@@ -122,36 +123,36 @@ func (bot *SlackBot) eventCallbackResponse(c echo.Context) interface{} {
 	if rMsg.MultiMember {
 		DMReceiver = append(DMReceiver, leftMembers...)
 	}
-	if err := bot.sendDirectMessage(notifier, slackEventApi, DMReceiver); err != nil {
-		bot.l.Errorf("send direct message error, %+v", err)
+	if err := svc.sendDirectMessage(notifier, slackEventApi, DMReceiver); err != nil {
+		svc.l.Errorf("send direct message error, %+v", err)
 		return nil
 	}
 
 	return nil
 }
 
-func (bot *SlackBot) recordMention(slackEventApi model.SlackEventAPI) (bool, error) {
-	return bot.repo.FindOrCreateMentionRecord(bot.Name, slackEventApi.Event.Channel, slackEventApi.Event.EventTimeStamp)
+func (svc *SlackBot) recordMention(slackEventApi model.SlackEventAPI) (bool, error) {
+	return svc.repo.FindOrCreateMentionRecord(svc.Name, slackEventApi.Event.Channel, slackEventApi.Event.EventTimeStamp)
 }
 
-func (bot *SlackBot) getDutyMember() (string, []string, error) {
-	startDate := bot.getStartDate()
+func (svc *SlackBot) getDutyMember() (string, []string, error) {
+	startDate := svc.getStartDate()
 	now := time.Now()
-	bot.l.Debug("time start: ", startDate.Format("20060102 15:04:05 MST"))
-	bot.l.Debug("time now: ", now.Format("20060102 15:04:05 MST"))
+	svc.l.Debug("time start: ", startDate.Format("20060102 15:04:05 MST"))
+	svc.l.Debug("time now: ", now.Format("20060102 15:04:05 MST"))
 
 	interval := now.Sub(startDate)
 	weekFromStartDate := (((interval.Milliseconds() / 1000 / 60) / 60) / 24) / 7
-	bot.l.Debug("week from start date: ", weekFromStartDate)
+	svc.l.Debug("week from start date: ", weekFromStartDate)
 
-	member, err := bot.listMember()
+	member, err := svc.listMember()
 	if err != nil {
 		return "", nil, err
 	}
 
 	index := int(weekFromStartDate % int64(len(member)))
-	bot.l.Debug("member list: ", member)
-	bot.l.Debug("index: ", index)
+	svc.l.Debug("member list: ", member)
+	svc.l.Debug("index: ", index)
 	left := make([]string, 0, len(member)-1)
 	for i, m := range member {
 		if i != index {
@@ -161,8 +162,8 @@ func (bot *SlackBot) getDutyMember() (string, []string, error) {
 	return fmt.Sprintf("<@%s>", member[index]), left, nil
 }
 
-func (bot *SlackBot) getReplyMessage() (model.SlackReplyMessage, error) {
-	rMsg, err := bot.repo.GetReplyMessage(bot.Name)
+func (svc *SlackBot) getReplyMessage() (model.SlackReplyMessage, error) {
+	rMsg, err := svc.repo.GetReplyMessage(svc.Name)
 	if err != nil {
 		return model.SlackReplyMessage{}, err
 	}
@@ -171,46 +172,46 @@ func (bot *SlackBot) getReplyMessage() (model.SlackReplyMessage, error) {
 		return rMsg, nil
 	}
 
-	rMsg.Message = bot.DefaultReplyMessage
-	rMsg.MultiMember = bot.DefaultMultiMember
-	if err := bot.repo.SetReplyMessage(bot.Name, rMsg.Message, rMsg.MultiMember); err != nil {
+	rMsg.Message = svc.DefaultReplyMessage
+	rMsg.MultiMember = svc.DefaultMultiMember
+	if err := svc.repo.SetReplyMessage(svc.Name, rMsg.Message, rMsg.MultiMember); err != nil {
 		return model.SlackReplyMessage{}, err
 	}
 	return rMsg, nil
 }
 
-func (bot *SlackBot) getStartDate() time.Time {
-	startDate, err := bot.repo.GetStartDate(bot.Name)
+func (svc *SlackBot) getStartDate() time.Time {
+	startDate, err := svc.repo.GetStartDate(svc.Name)
 	if err != nil {
-		bot.l.Warn("get start date error, %+v", err)
-		bot.l.Warn("reset start date to database")
-		bot.repo.UpdateStartDate(bot.Name, bot.DefaultStartDate)
-		startDate = bot.DefaultStartDate
+		svc.l.Warn("get start date error, %+v", err)
+		svc.l.Warn("reset start date to database")
+		svc.repo.UpdateStartDate(svc.Name, svc.DefaultStartDate)
+		startDate = svc.DefaultStartDate
 	}
 	return startDate
 }
 
-func (bot *SlackBot) listMember() ([]string, error) {
-	members, err := bot.repo.ListMember(bot.Name)
+func (svc *SlackBot) listMember() ([]string, error) {
+	members, err := svc.repo.ListMember(svc.Name)
 	if err == nil && len(members) != 0 {
 		return members, nil
 	}
-	bot.l.Warnf("list member error, %+v", err)
-	bot.l.Warnf("reset member to database '%s'", bot.Name)
-	if err := bot.repo.UpdateMember(bot.Name, bot.DefaultMemberList); err != nil {
+	svc.l.Warnf("list member error, %+v", err)
+	svc.l.Warnf("reset member to database '%s'", svc.Name)
+	if err := svc.repo.UpdateMember(svc.Name, svc.DefaultMemberList); err != nil {
 		return nil, err
 	}
 
-	result := make([]string, 0, len(bot.DefaultMemberList))
-	for _, m := range bot.DefaultMemberList {
+	result := make([]string, 0, len(svc.DefaultMemberList))
+	for _, m := range svc.DefaultMemberList {
 		result = append(result, m.UserID)
 	}
 
 	return result, nil
 }
 
-func (bot *SlackBot) sendToSlack(notifier *util.SlackNotifier, msg util.Messenger) error {
-	_, _, err := notifier.Send(bot.ctx, http.MethodPost, util.PostChat, msg)
+func (svc *SlackBot) sendToSlack(notifier *util.SlackNotifier, msg util.Messenger) error {
+	_, _, err := notifier.Send(svc.ctx, http.MethodPost, util.PostChat, msg)
 	if err != nil {
 		return err
 	}
@@ -218,9 +219,9 @@ func (bot *SlackBot) sendToSlack(notifier *util.SlackNotifier, msg util.Messenge
 	return nil
 }
 
-func (bot *SlackBot) getPermalink(notifier *util.SlackNotifier, channel, messageTimestamp string) (string, error) {
+func (svc *SlackBot) getPermalink(notifier *util.SlackNotifier, channel, messageTimestamp string) (string, error) {
 	url := fmt.Sprintf("%s?channel=%s&message_ts=%s", util.GetPermalink, channel, messageTimestamp)
-	response, _, err := notifier.Send(bot.ctx, http.MethodGet, util.Url(url), util.SlackMsg{})
+	response, _, err := notifier.Send(svc.ctx, http.MethodGet, util.Url(url), util.SlackMsg{})
 	if err != nil {
 		return "", err
 	}
@@ -237,8 +238,7 @@ func (bot *SlackBot) getPermalink(notifier *util.SlackNotifier, channel, message
 	return permalink.Permalink, nil
 }
 
-func (bot *SlackBot) sendMentionReply(notifier *util.SlackNotifier, slackEventApi model.SlackEventAPI, dutyMember string, leftMembers []string, rMsg model.SlackReplyMessage) error {
-
+func (svc *SlackBot) sendMentionReply(notifier *util.SlackNotifier, slackEventApi model.SlackEventAPI, dutyMember string, leftMembers []string, rMsg model.SlackReplyMessage) error {
 	replyText := ""
 	if rMsg.MultiMember {
 		replyText = fmt.Sprintf(rMsg.Message, dutyMember, strings.Join(leftMembers, " "))
@@ -246,7 +246,7 @@ func (bot *SlackBot) sendMentionReply(notifier *util.SlackNotifier, slackEventAp
 		replyText = fmt.Sprintf(rMsg.Message, dutyMember)
 	}
 
-	if err := bot.sendToSlack(notifier, util.SlackReplyMsg{
+	if err := svc.sendToSlack(notifier, util.SlackReplyMsg{
 		Text:      replyText,
 		Channel:   slackEventApi.Event.Channel,
 		TimeStamp: slackEventApi.Event.TimeStamp,
@@ -256,8 +256,8 @@ func (bot *SlackBot) sendMentionReply(notifier *util.SlackNotifier, slackEventAp
 	return nil
 }
 
-func (bot *SlackBot) sendDirectMessage(notifier *util.SlackNotifier, slackEventApi model.SlackEventAPI, members []string) error {
-	link, err := bot.getPermalink(notifier, slackEventApi.Event.Channel, slackEventApi.Event.EventTimeStamp)
+func (svc *SlackBot) sendDirectMessage(notifier *util.SlackNotifier, slackEventApi model.SlackEventAPI, members []string) error {
+	link, err := svc.getPermalink(notifier, slackEventApi.Event.Channel, slackEventApi.Event.EventTimeStamp)
 	if err != nil {
 		return err
 	}
@@ -274,14 +274,16 @@ func (bot *SlackBot) sendDirectMessage(notifier *util.SlackNotifier, slackEventA
 			Channel: member[2 : len(member)-1],
 		}.AddAttachments(
 			"text", slackEventApi.Event.Text,
-			"callback_id", fmt.Sprintf("%s_direct_message_action", bot.Name),
+			"callback_id", fmt.Sprintf("%s_direct_message_action", svc.Name),
 			"actions", []model.SlackMessageButton{
 				model.NewMessageActionButton("primary", "danger", "刪除通知"),
 			})
 
-		if err := bot.sendToSlack(notifier, msg); err != nil {
+		if err := svc.sendToSlack(notifier, msg); err != nil {
 			return err
 		}
 	}
 	return nil
 }
+
+// TODO: Delete All Direct Message From Bot

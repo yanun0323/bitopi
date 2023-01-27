@@ -2,11 +2,11 @@ package main
 
 import (
 	"bitopi/internal/app"
-	"bitopi/pkg/config"
+	"bitopi/pkg/infra"
 )
 
 func main() {
-	if err := config.Init("config"); err != nil {
+	if err := infra.Init("config"); err != nil {
 		panic("init config failed")
 	}
 

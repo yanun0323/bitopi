@@ -35,7 +35,15 @@ func Run() {
 	}, m...)
 	router.GET("/debug", svc.DebugService, m...)
 
-	pmBot := service.NewBot("pm", svc, service.SlackBotOption{
+	SetBotRouters(router, svc)
+	SetCommandRouters(router, svc)
+
+	e.Start(":8001")
+}
+
+func SetBotRouters(router *echo.Group, svc service.Service) {
+	pmBot := service.NewBot(svc, service.SlackBotOption{
+		Name:             "pm",
 		Token:            viper.GetString("pm.token"),
 		DefaultStartDate: util.NewDate(2022, 11, 27),
 		DefaultMemberList: []model.Member{
@@ -45,7 +53,8 @@ func Run() {
 		DefaultReplyMessage: "請稍候片刻，%s Support PM %s 將盡快為您服務 :smiling_face_with_3_hearts:",
 	})
 
-	railsBot := service.NewBot("rails", svc, service.SlackBotOption{
+	railsBot := service.NewBot(svc, service.SlackBotOption{
+		Name:             "rails",
 		Token:            viper.GetString("rails.token"),
 		DefaultStartDate: util.NewDate(2022, 11, 6),
 		DefaultMemberList: []model.Member{
@@ -59,7 +68,8 @@ func Run() {
 		DefaultReplyMessage: "請稍候片刻，本週茅房廁紙 %s 會盡快為您服務 :smiling_face_with_3_hearts:",
 	})
 
-	devopsBot := service.NewBot("devops", svc, service.SlackBotOption{
+	devopsBot := service.NewBot(svc, service.SlackBotOption{
+		Name:             "devops",
 		Token:            viper.GetString("devops.token"),
 		DefaultStartDate: util.NewDate(2022, 10, 23),
 		DefaultMemberList: []model.Member{
@@ -71,7 +81,8 @@ func Run() {
 		DefaultMultiMember:  true,
 	})
 
-	maidBot := service.NewBot("maid", svc, service.SlackBotOption{
+	maidBot := service.NewBot(svc, service.SlackBotOption{
+		Name:             "maid",
 		Token:            viper.GetString("maid.token"),
 		DefaultStartDate: util.NewDate(2022, 9, 25),
 		DefaultMemberList: []model.Member{
@@ -85,9 +96,8 @@ func Run() {
 		DefaultReplyMessage: "請稍候片刻，本週女僕 %s 會盡快為您服務 :smiling_face_with_3_hearts:",
 	})
 
-	maidAction := service.NewAction("maid", maidBot)
-
-	testBot := service.NewBot("test", svc, service.SlackBotOption{
+	testBot := service.NewBot(svc, service.SlackBotOption{
+		Name:             "test",
 		Token:            viper.GetString("test.token"),
 		DefaultStartDate: util.NewDate(2023, 1, 22),
 		DefaultMemberList: []model.Member{
@@ -101,14 +111,23 @@ func Run() {
 		DefaultReplyMessage: "測試訊息 %s :smiling_face_with_3_hearts:",
 	})
 
+	testAction := service.NewAction("test", testBot)
+
 	router.POST("/pm", pmBot.Handler)
 	router.POST("/rails-hi", railsBot.Handler)
 	router.POST("/devops-bro", devopsBot.Handler)
 	router.POST("/backend-maid", maidBot.Handler)
 	router.POST("/test", testBot.Handler)
-	// router.POST("/backend-maid/command", svc.MaidCommandHandler, m...)
 
-	router.POST("/backend-maid/action", maidAction.Handler)
+	router.POST("/test/action", testAction.Handler)
+}
 
-	e.Start(":8001")
+func SetCommandRouters(router *echo.Group, svc service.Service) {
+
+	testCommand := service.NewCommand(svc, service.SlackCommandOption{
+		Name:  "test",
+		Token: viper.GetString("test.token"),
+	})
+
+	router.POST("/test/command", testCommand.Handler)
 }
