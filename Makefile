@@ -23,3 +23,10 @@ docker.down:
 
 docker.rm:
 	docker rm -f bitopi
+
+.PHONY: mysql.run
+mysql.run:
+	docker run -d -p 3306:3306 \
+		-e MYSQL_USER=${USER} -e MYSQL_PASSWORD=${PASSWARD} \
+    	-e MYSQL_DATABASE=${DATABASE} \
+    	--name mysql mysql/mysql-server:8.0
