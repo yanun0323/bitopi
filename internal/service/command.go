@@ -39,7 +39,7 @@ func (svc *SlackCommand) Handler(c echo.Context) error {
 	}
 
 	payload := c.Request().PostForm
-	callbackUrl := util.NewUrl(payload.Get("response_url"))
+	callbackUrl := util.Url(payload.Get("response_url"))
 	userID := payload.Get("user_id")
 	svc.l.Debug("user: ", userID, ", from channel: ", payload.Get("channel_id"))
 	directChannel := svc.getDirectChannel(userID, svc.Token)
@@ -78,7 +78,11 @@ func (svc *SlackCommand) Handler(c echo.Context) error {
 			}
 		}()
 		return nil
-		// TODO: Info command -> order of members and start time
+	case "info":
+		go func() {
+			// TODO: Info command -> order of members and start time
+		}()
+		return nil
 		// TODO: Set command -> send slack view to set settings
 		// deal with
 	default:

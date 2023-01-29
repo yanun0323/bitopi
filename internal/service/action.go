@@ -35,16 +35,12 @@ func (svc *SlackAction) eventCallbackResponse(c echo.Context) interface{} {
 
 	switch action {
 	case "resend":
-		svc.l.Info("execute resend")
+		return svc.resendActionReply()
 	case "delete":
-		svc.l.Info("execute delete")
+		return svc.deleteActionReply()
 	}
 
-	return struct {
-		DeleteOriginal bool `json:"delete_original"`
-	}{
-		DeleteOriginal: true,
-	}
+	return svc.deleteActionReply()
 }
 
 func (svc *SlackAction) parseAction(c echo.Context) (string, error) {
@@ -109,4 +105,20 @@ func (svc *SlackAction) parseRequest(c echo.Context) error {
 	}
 
 	return nil
+}
+
+func (svc *SlackAction) resendActionReply() interface{} {
+	svc.l.Debug("execute resend")
+	// TODO: Implement resend action
+	// -> send slack view to resend somebody
+	return svc.deleteActionReply()
+}
+
+func (svc *SlackAction) deleteActionReply() interface{} {
+	svc.l.Debug("execute delete")
+	return struct {
+		DeleteOriginal bool `json:"delete_original"`
+	}{
+		DeleteOriginal: true,
+	}
 }

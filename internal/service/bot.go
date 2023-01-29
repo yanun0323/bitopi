@@ -165,10 +165,10 @@ func (svc *SlackBot) getDutyMember() (string, []string, error) {
 	return fmt.Sprintf("<@%s>", member[index]), left, nil
 }
 
-func (svc *SlackBot) getReplyMessage() (model.SlackReplyMessage, error) {
+func (svc *SlackBot) getReplyMessage() (model.ReplyMessage, error) {
 	rMsg, err := svc.repo.GetReplyMessage(svc.Name)
 	if err != nil {
-		return model.SlackReplyMessage{}, err
+		return model.ReplyMessage{}, err
 	}
 
 	if len(rMsg.Message) != 0 {
@@ -178,7 +178,7 @@ func (svc *SlackBot) getReplyMessage() (model.SlackReplyMessage, error) {
 	rMsg.Message = svc.DefaultReplyMessage
 	rMsg.MultiMember = svc.DefaultMultiMember
 	if err := svc.repo.SetReplyMessage(svc.Name, rMsg.Message, rMsg.MultiMember); err != nil {
-		return model.SlackReplyMessage{}, err
+		return model.ReplyMessage{}, err
 	}
 	return rMsg, nil
 }
@@ -241,7 +241,7 @@ func (svc *SlackBot) getPermalink(notifier util.SlackNotifier, channel, messageT
 	return permalink.Permalink, nil
 }
 
-func (svc *SlackBot) sendMentionReply(notifier util.SlackNotifier, slackEventApi model.SlackEventAPI, dutyMember string, leftMembers []string, rMsg model.SlackReplyMessage) error {
+func (svc *SlackBot) sendMentionReply(notifier util.SlackNotifier, slackEventApi model.SlackEventAPI, dutyMember string, leftMembers []string, rMsg model.ReplyMessage) error {
 	replyText := ""
 	if rMsg.MultiMember {
 		replyText = fmt.Sprintf(rMsg.Message, dutyMember, strings.Join(leftMembers, " "))
@@ -281,8 +281,9 @@ func (svc *SlackBot) sendDirectMessage(notifier util.SlackNotifier, slackEventAp
 			"footer", slackEventApi.Event.Text,
 			"callback_id", fmt.Sprintf("%s_direct_message_action", svc.Name),
 			"actions", []model.SlackMessageButton{
-				model.NewMessageActionButton("primary", "resend", "轉傳給..."),
-				model.NewMessageActionButton("danger", "delete", "刪除"),
+				// TODO: Uncomment resend action
+				//model.NewMessageActionButton("primary", "resend", "轉傳給..."),
+				model.NewSlackMessageActionButton("danger", "delete", "刪除"),
 			},
 		)
 

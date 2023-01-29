@@ -18,6 +18,6 @@ type Repository interface {
 
 	FindOrCreateMentionRecord(service, channel, timestamp string) (found bool, err error)
 
-	GetReplyMessage(service string) (model.SlackReplyMessage, error)
+	GetReplyMessage(service string) (model.ReplyMessage, error)
 	SetReplyMessage(service, message string, multiMember bool) error
 }

@@ -51,7 +51,7 @@ func initMigration(db *gorm.DB) error {
 		return err
 	}
 
-	if err := migrate(db, &model.SlackReplyMessage{}); err != nil {
+	if err := migrate(db, &model.ReplyMessage{}); err != nil {
 		return err
 	}
 
@@ -231,17 +231,17 @@ func (dao MysqlDao) FindOrCreateMentionRecord(service, channel, timestamp string
 	return found, err
 }
 
-func (dao MysqlDao) GetReplyMessage(service string) (model.SlackReplyMessage, error) {
-	msg := model.SlackReplyMessage{}
+func (dao MysqlDao) GetReplyMessage(service string) (model.ReplyMessage, error) {
+	msg := model.ReplyMessage{}
 	if err := dao.db.Where("`service` = ?", service).First(&msg).Error; err != nil && !notFound(err) {
-		return model.SlackReplyMessage{}, err
+		return model.ReplyMessage{}, err
 	}
 	return msg, nil
 }
 
 func (dao MysqlDao) SetReplyMessage(service, message string, multiMember bool) error {
 	return dao.db.Transaction(func(tx *gorm.DB) error {
-		msg := model.SlackReplyMessage{}
+		msg := model.ReplyMessage{}
 		err := tx.Where("`service` = ?", service).First(&msg).Error
 		if err == nil {
 			msg.Message = message
@@ -253,7 +253,7 @@ func (dao MysqlDao) SetReplyMessage(service, message string, multiMember bool) e
 			return err
 		}
 
-		msg = model.SlackReplyMessage{
+		msg = model.ReplyMessage{
 			Service:     service,
 			Message:     message,
 			MultiMember: multiMember,

@@ -9,10 +9,6 @@ const (
 	GetThread    Url = "https://slack.com/api/conversations.replies"
 )
 
-func NewUrl(url string) Url {
-	return Url(url)
-}
-
 func (u Url) String() string {
 	return string(u)
 }

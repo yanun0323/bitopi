@@ -29,7 +29,7 @@ func (svc *Service) getDirectChannel(userID, token string) string {
 		return ""
 	}
 
-	c := &model.DirectChannel{}
+	c := &model.SlackDirectChannel{}
 	if err := json.Unmarshal(buf, c); err != nil {
 		svc.l.Errorf("unmarshal json response error, %+v", err)
 		return ""
