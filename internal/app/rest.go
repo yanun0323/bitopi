@@ -10,23 +10,16 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/spf13/viper"
-	"github.com/yanun0323/pkg/logs"
 )
 
 func Run() {
-	l := logs.New("bito_pi", uint8(viper.GetInt("log.level")))
 	e := echo.New()
 	e.Logger.SetLevel(4)
-
-	svc, err := service.New()
-	if err != nil {
-		l.Fatalf("create service failed %s", err)
-		return
-	}
 
 	rateLimiter := middleware.RateLimiter(middleware.NewRateLimiterMemoryStore(20))
 	m := []echo.MiddlewareFunc{rateLimiter}
 	router := e.Group("", m...)
+	router.GET("/debug", service.DebugHandler, m...)
 	router.GET("/healthz", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, struct {
 			Msg string `json:"message"`
@@ -34,14 +27,20 @@ func Run() {
 			Msg: "OK",
 		})
 	}, m...)
-	router.GET("/debug", svc.DebugService, m...)
 
-	setRouters(router, svc)
+	if err := initRouters(router); err != nil {
+		panic(fmt.Sprintf("initialize routers error, %+v", err))
+	}
 
 	e.Start(":8001")
 }
 
-func setRouters(router *echo.Group, svc service.Service) {
+func initRouters(router *echo.Group) error {
+	svc, err := service.New()
+	if err != nil {
+		return err
+	}
+
 	setBot(router, svc, service.SlackBotOption{
 		Name:             "pm",
 		Token:            viper.GetString("pm.token"),
@@ -110,6 +109,8 @@ func setRouters(router *echo.Group, svc service.Service) {
 		},
 		DefaultReplyMessage: "測試訊息 %s :smiling_face_with_3_hearts:",
 	})
+
+	return nil
 }
 
 func setBot(router *echo.Group, svc service.Service, opt service.SlackBotOption) {

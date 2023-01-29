@@ -8,7 +8,7 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func (s *Service) DebugService(c echo.Context) error {
+func DebugHandler(c echo.Context) error {
 	pure, err := time.Parse("20060102", "20221125")
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, util.NewErrorResponse("bad", err))

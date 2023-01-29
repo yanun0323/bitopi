@@ -4,9 +4,7 @@ import (
 	"bitopi/internal/domain"
 	"bitopi/internal/repository"
 	"context"
-	"net/http"
 
-	"github.com/labstack/echo/v4"
 	"github.com/spf13/viper"
 	"github.com/yanun0323/pkg/logs"
 )
@@ -31,12 +29,4 @@ func New() (Service, error) {
 		ctx:      ctx,
 		logLevel: logLevel,
 	}, nil
-}
-
-func (svc *Service) ok(c echo.Context, i ...interface{}) error {
-	svc.l.Info("OK")
-	if len(i) > 0 {
-		return c.JSON(http.StatusOK, i[0])
-	}
-	return c.JSON(http.StatusOK, nil)
 }

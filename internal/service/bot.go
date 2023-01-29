@@ -276,12 +276,15 @@ func (svc *SlackBot) sendDirectMessage(notifier util.SlackNotifier, slackEventAp
 			Text:    directMessageText,
 			Channel: member[2 : len(member)-1],
 		}.AddAttachments(
+			"type", "section",
 			"text", "",
-			"footer", slackEventApi.Event.Text+" ",
+			"footer", slackEventApi.Event.Text,
 			"callback_id", fmt.Sprintf("%s_direct_message_action", svc.Name),
 			"actions", []model.SlackMessageButton{
-				model.NewMessageActionButton("primary", "danger", "刪除通知"),
-			})
+				model.NewMessageActionButton("primary", "resend", "轉傳給..."),
+				model.NewMessageActionButton("danger", "delete", "刪除"),
+			},
+		)
 
 		if err := svc.sendToSlack(notifier, msg); err != nil {
 			return err
