@@ -1,6 +1,6 @@
 package model
 
-type SlackMessageButton struct {
+type SlackActionButton struct {
 	Name  string `json:"name"`
 	Text  string `json:"text"`
 	Style string `json:"style"` /* default, primary, danger */
@@ -11,8 +11,8 @@ type SlackMessageButton struct {
 /*
 style: default, primary, danger
 */
-func NewSlackMessageActionButton(style, value, text string) SlackMessageButton {
-	return SlackMessageButton{
+func NewSlackActionButton(style, value, text string) SlackActionButton {
+	return SlackActionButton{
 		Name:  "direct_msg_action",
 		Text:  text,
 		Style: style,
@@ -21,6 +21,6 @@ func NewSlackMessageActionButton(style, value, text string) SlackMessageButton {
 	}
 }
 
-type SlackActionPayload struct {
+type SlackInteractionPayload struct {
 	Payload map[string]interface{} `json:"payload"`
 }

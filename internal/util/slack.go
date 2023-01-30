@@ -24,6 +24,10 @@ type SlackNotifier struct {
 	httpClient http.Client
 }
 
+func (s SlackNotifier) Token() string {
+	return s.token
+}
+
 func (s SlackNotifier) Send(ctx context.Context, method string, url Url, msg Messenger) ([]byte, int, error) {
 	if len(url) == 0 {
 		return nil, 0, errors.New("empty url")

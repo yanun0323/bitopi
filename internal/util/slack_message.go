@@ -8,13 +8,19 @@ type Messenger interface {
 	Marshal() ([]byte, error)
 }
 
+type SlackMapMsg map[string]interface{}
+
+func (msg SlackMapMsg) Marshal() ([]byte, error) {
+	return json.Marshal(msg)
+}
+
 type GeneralMsg struct {
 	Text    string `json:"text,omitempty"`
 	Channel string `json:"channel,omitempty"`
 	TS      string `json:"ts,omitempty"`
 }
 
-func (msg *GeneralMsg) Marshal() ([]byte, error) {
+func (msg GeneralMsg) Marshal() ([]byte, error) {
 	return json.Marshal(msg)
 }
 
@@ -74,7 +80,16 @@ func (msg SlackPermalinkRequest) Marshal() ([]byte, error) {
 	return json.Marshal(msg)
 }
 
-type MaidManageViewMsg struct {
+type SlackHomeViewMsg struct {
+	UserID string                 `json:"user_id"`
+	View   map[string]interface{} `json:"view"`
+}
+
+func (msg SlackHomeViewMsg) Marshal() ([]byte, error) {
+	return json.Marshal(msg)
+}
+
+type SlackViewMsg struct {
 	TriggerID string                 `json:"trigger_id"`
 	View      map[string]interface{} `json:"view"`
 }
@@ -85,12 +100,12 @@ type PlainText struct {
 	Emoji bool   `json:"emoji"`
 }
 
-func (msg MaidManageViewMsg) Marshal() ([]byte, error) {
+func (msg SlackViewMsg) Marshal() ([]byte, error) {
 	return json.Marshal(msg)
 }
 
-func GetInteractor(triggerID string) Messenger {
-	return MaidManageViewMsg{
+func GetInteractor(triggerID string) SlackViewMsg {
+	return SlackViewMsg{
 		TriggerID: triggerID,
 		View: map[string]interface{}{
 			"type": "modal",

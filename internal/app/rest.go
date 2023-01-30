@@ -101,13 +101,10 @@ func initRouters(router *echo.Group) error {
 		DefaultStartDate: util.NewDate(2023, 1, 22),
 		DefaultMemberList: []model.Member{
 			{UserID: "U032TJB1PE1", UserName: "Yanun"},
-			{UserID: "U03ECC8Q61E", UserName: "Howard"},
-			{UserID: "U031SSN3QDT", UserName: "Kai"},
-			{UserID: "U01QCKG7529", UserName: "Vic"},
-			{UserID: "U036V8WPXDY", UserName: "Victor"},
-			{UserID: "U03MWAJDBV3", UserName: "Luki"},
+			{UserID: "U032TJB1PE1", UserName: "Yanun"},
+			{UserID: "U032TJB1PE1", UserName: "Yanun"},
 		},
-		DefaultReplyMessage: "測試訊息 %s :smiling_face_with_3_hearts:",
+		DefaultReplyMessage: "測試訊息，今日值日生 %s :smiling_face_with_3_hearts:",
 	})
 
 	return nil
@@ -115,13 +112,8 @@ func initRouters(router *echo.Group) error {
 
 func setBot(router *echo.Group, svc service.Service, opt service.SlackBotOption) {
 	bot := service.NewBot(svc, opt)
-	action := service.NewAction(opt.Name, bot)
-	command := service.NewCommand(svc, service.SlackCommandOption{
-		Name:  opt.Name,
-		Token: opt.Token,
-	})
+	action := service.NewInteraction(bot)
 
 	router.POST(fmt.Sprintf("/%s", bot.Name), bot.Handler)
 	router.POST(fmt.Sprintf("/%s/action", bot.Name), action.Handler)
-	router.POST(fmt.Sprintf("/%s/command", bot.Name), command.Handler)
 }

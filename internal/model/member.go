@@ -14,3 +14,7 @@ type Member struct {
 func (Member) TableName() string {
 	return MemberTableName
 }
+
+func (m Member) UserTag() string {
+	return "<@" + m.UserID + ">"
+}

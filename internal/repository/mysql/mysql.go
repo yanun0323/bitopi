@@ -51,7 +51,7 @@ func initMigration(db *gorm.DB) error {
 		return err
 	}
 
-	if err := migrate(db, &model.ReplyMessage{}); err != nil {
+	if err := migrate(db, &model.BotMessage{}); err != nil {
 		return err
 	}
 
@@ -70,7 +70,7 @@ func notFound(err error) bool {
 	return errors.Is(err, gorm.ErrRecordNotFound)
 }
 
-func (dao MysqlDao) ListMember(service string) ([]string, error) {
+func (dao MysqlDao) ListMember(service string) ([]model.Member, error) {
 	var member []model.Member
 	err := dao.db.Where("`service` = ?", service).
 		Find(&member).Error
@@ -78,11 +78,7 @@ func (dao MysqlDao) ListMember(service string) ([]string, error) {
 		return nil, err
 	}
 
-	result := make([]string, 0, len(member))
-	for _, m := range member {
-		result = append(result, m.UserID)
-	}
-	return result, nil
+	return member, nil
 }
 
 func (dao MysqlDao) UpdateMember(service string, member []model.Member) error {
@@ -112,60 +108,61 @@ func (dao MysqlDao) UpdateMember(service string, member []model.Member) error {
 	})
 }
 
-func (dao MysqlDao) IsAdmin(name, service string) (bool, error) {
-	var count int64
-	err := dao.db.Model(&model.Member{}).
-		Where("`name` = ?", name).
-		Where("`service` = ?", service).
-		Where("`admin` = ?", true).
-		Count(&count).Error
-	if err != nil {
-		return false, err
-	}
-	return count > 0, nil
-}
-
-func (dao MysqlDao) ListAdmin(service string) ([]string, error) {
-	var members []model.Member
-	err := dao.db.
-		Where("`service` = ?", service).
-		Where("`admin` = ?", true).
-		Find(&members).Error
-	if err != nil {
-		return nil, err
-	}
-	result := make([]string, 0, len(members))
-	for i := range members {
-		result = append(result, members[i].UserID)
-	}
-	return result, nil
-}
-
-func (dao MysqlDao) SetAdmin(name, service string, admin bool) error {
-	return dao.db.Transaction(func(tx *gorm.DB) error {
-		var member model.Member
-
-		err := tx.Where("`name` = ?", name).
+/*
+	func (dao MysqlDao) IsAdmin(name, service string) (bool, error) {
+		var count int64
+		err := dao.db.Model(&model.Member{}).
+			Where("`name` = ?", name).
 			Where("`service` = ?", service).
-			Where("`order` = ?", -1).
-			First(&member).Error
-		if err != nil && !notFound(err) {
-			return err
-		}
-
-		if !admin {
-			return nil
-		}
-
-		member.Admin = admin
-		err = tx.Save(&member).Error
+			Where("`admin` = ?", true).
+			Count(&count).Error
 		if err != nil {
-			return err
+			return false, err
 		}
-		return nil
-	})
-}
+		return count > 0, nil
+	}
 
+	func (dao MysqlDao) ListAdmin(service string) ([]string, error) {
+		var members []model.Member
+		err := dao.db.
+			Where("`service` = ?", service).
+			Where("`admin` = ?", true).
+			Find(&members).Error
+		if err != nil {
+			return nil, err
+		}
+		result := make([]string, 0, len(members))
+		for i := range members {
+			result = append(result, members[i].UserID)
+		}
+		return result, nil
+	}
+
+	func (dao MysqlDao) SetAdmin(name, service string, admin bool) error {
+		return dao.db.Transaction(func(tx *gorm.DB) error {
+			var member model.Member
+
+			err := tx.Where("`name` = ?", name).
+				Where("`service` = ?", service).
+				Where("`order` = ?", -1).
+				First(&member).Error
+			if err != nil && !notFound(err) {
+				return err
+			}
+
+			if !admin {
+				return nil
+			}
+
+			member.Admin = admin
+			err = tx.Save(&member).Error
+			if err != nil {
+				return err
+			}
+			return nil
+		})
+	}
+*/
 func (dao MysqlDao) GetStartDate(service string) (time.Time, error) {
 	elem := model.StartTime{}
 	err := dao.db.Where("`service` = ?", service).
@@ -202,8 +199,25 @@ func (dao MysqlDao) UpdateStartDate(service string, t time.Time) error {
 	})
 }
 
-func (dao MysqlDao) FindOrCreateMentionRecord(service, channel, timestamp string) (bool, error) {
+func (dao MysqlDao) CountMentionRecord(service string) (int64, error) {
+	var count int64
+	if err := dao.db.Model(&model.MentionRecord{}).Where("`service` = ?", service).Count(&count).Error; err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+func (dao MysqlDao) GetMentionRecord(id uint64) (model.MentionRecord, error) {
+	record := model.MentionRecord{}
+	if err := dao.db.Where("`id`= ?", id).First(&record).Error; err != nil {
+		return model.MentionRecord{}, err
+	}
+	return record, nil
+}
+
+func (dao MysqlDao) FindOrCreateMentionRecord(service, channel, timestamp string) (uint64, bool, error) {
 	found := false
+	var id uint64
 	err := dao.db.Transaction(func(tx *gorm.DB) error {
 		record := model.MentionRecord{}
 		err := tx.Where("`service` = ?", service).
@@ -211,6 +225,7 @@ func (dao MysqlDao) FindOrCreateMentionRecord(service, channel, timestamp string
 			Where("`timestamp` = ?", timestamp).
 			First(&record).Error
 		if err == nil {
+			id = record.ID
 			found = true
 			return nil
 		}
@@ -226,37 +241,29 @@ func (dao MysqlDao) FindOrCreateMentionRecord(service, channel, timestamp string
 		if err := tx.Create(&record).Error; err != nil {
 			return errors.Wrap(err, "create")
 		}
+		id = record.ID
 		return nil
 	})
-	return found, err
+	return id, found, err
 }
 
-func (dao MysqlDao) GetReplyMessage(service string) (model.ReplyMessage, error) {
-	msg := model.ReplyMessage{}
+func (dao MysqlDao) GetReplyMessage(service string) (model.BotMessage, error) {
+	msg := model.BotMessage{}
 	if err := dao.db.Where("`service` = ?", service).First(&msg).Error; err != nil && !notFound(err) {
-		return model.ReplyMessage{}, err
+		return model.BotMessage{}, err
 	}
 	return msg, nil
 }
 
-func (dao MysqlDao) SetReplyMessage(service, message string, multiMember bool) error {
+func (dao MysqlDao) SetReplyMessage(msg model.BotMessage) error {
 	return dao.db.Transaction(func(tx *gorm.DB) error {
-		msg := model.ReplyMessage{}
-		err := tx.Where("`service` = ?", service).First(&msg).Error
+		err := tx.Where("`service` = ?", msg.Service).First(&model.BotMessage{}).Error
 		if err == nil {
-			msg.Message = message
-			msg.MultiMember = multiMember
 			return tx.Save(&msg).Error
 		}
 
 		if !notFound(err) {
 			return err
-		}
-
-		msg = model.ReplyMessage{
-			Service:     service,
-			Message:     message,
-			MultiMember: multiMember,
 		}
 
 		return tx.Create(&msg).Error

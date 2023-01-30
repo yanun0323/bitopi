@@ -1,12 +1,13 @@
 package model
 
-type ReplyMessage struct {
-	ID          uint64 `gorm:"column:id;autoIncrement"`
-	Service     string `gorm:"column:service;size:50"`
-	Message     string `gorm:"column:name;size:50"`
-	MultiMember bool   `gorm:"column:multi_member;not null"`
+type BotMessage struct {
+	ID                 uint64 `gorm:"column:id;autoIncrement"`
+	Service            string `gorm:"column:service;size:50"`
+	MentionMessage     string `gorm:"column:mention_message;size:255"`
+	MentionMultiMember bool   `gorm:"column:mention_multi_member;not null"`
+	WeeklyMessage      string `gorm:"column:weekly_message;size:255"`
 }
 
-func (ReplyMessage) TableName() string {
-	return "slack_reply_messages"
+func (BotMessage) TableName() string {
+	return "slack_bot_messages"
 }
