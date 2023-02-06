@@ -10,3 +10,7 @@ type Admin struct {
 func (Admin) TableName() string {
 	return "slack_bot_admins"
 }
+
+func (a Admin) IsEmpty() bool {
+	return len(a.Service) == 0 || len(a.UserID) == 0
+}

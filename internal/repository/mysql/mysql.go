@@ -144,61 +144,47 @@ func (dao MysqlDao) ListAllMembers() ([]model.Member, error) {
 	return members, nil
 }
 
-/*
-	func (dao MysqlDao) IsAdmin(name, service string) (bool, error) {
-		var count int64
-		err := dao.db.Model(&model.Member{}).
-			Where("`name` = ?", name).
-			Where("`service` = ?", service).
-			Where("`admin` = ?", true).
-			Count(&count).Error
-		if err != nil {
-			return false, err
-		}
-		return count > 0, nil
+func (dao MysqlDao) IsAdmin(service, userID string) (bool, error) {
+	err := dao.db.
+		Where("`user_id` = ?", userID).
+		Where("`service` = ?", service).Error
+	if err == nil {
+		return true, nil
 	}
 
-	func (dao MysqlDao) ListAdmin(service string) ([]string, error) {
-		var members []model.Member
-		err := dao.db.
-			Where("`service` = ?", service).
-			Where("`admin` = ?", true).
-			Find(&members).Error
-		if err != nil {
-			return nil, err
-		}
-		result := make([]string, 0, len(members))
-		for i := range members {
-			result = append(result, members[i].UserID)
-		}
-		return result, nil
+	if notFound(err) {
+		return false, nil
 	}
 
-	func (dao MysqlDao) SetAdmin(name, service string, admin bool) error {
-		return dao.db.Transaction(func(tx *gorm.DB) error {
-			var member model.Member
+	return false, err
+}
 
-			err := tx.Where("`name` = ?", name).
-				Where("`service` = ?", service).
-				Where("`order` = ?", -1).
-				First(&member).Error
-			if err != nil && !notFound(err) {
-				return err
-			}
-
-			if !admin {
-				return nil
-			}
-
-			member.Admin = admin
-			err = tx.Save(&member).Error
-			if err != nil {
-				return err
-			}
-			return nil
-		})
+func (dao MysqlDao) ListAdmin(service string) ([]model.Admin, error) {
+	var admins []model.Admin
+	if err := dao.db.Find(&admins).Error; err != nil {
+		return nil, err
 	}
-*/
+	return admins, nil
+}
+
+func (dao MysqlDao) AddAdmin(admin model.Admin) error {
+	if admin.IsEmpty() {
+		return errors.New(fmt.Sprintf("empty admin, %+v", admin))
+	}
+	return dao.db.Save(&admin).Error
+}
+
+func (dao MysqlDao) DeleteAdmin(service, userID string) error {
+	err := dao.db.
+		Where("`service` = ?", service).
+		Where("`user_id` = ?", userID).
+		Delete(&model.Admin{}).Error
+	if err != nil && !notFound(err) {
+		return err
+	}
+	return nil
+}
+
 func (dao MysqlDao) GetStartDate(service string) (time.Time, error) {
 	elem := model.StartTime{}
 	err := dao.db.Where("`service` = ?", service).

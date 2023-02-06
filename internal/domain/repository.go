@@ -14,9 +14,10 @@ type Repository interface {
 
 	ListAllMembers() ([]model.Member, error)
 
-	// IsAdmin(name, service string) (bool, error)
-	// ListAdmin(service string) ([]string, error)
-	// SetAdmin(name, service string, admin bool) error
+	IsAdmin(service, userID string) (bool, error)
+	ListAdmin(service string) ([]model.Admin, error)
+	AddAdmin(admin model.Admin) error
+	DeleteAdmin(service, userID string) error
 
 	GetStartDate(service string) (time.Time, error)
 	UpdateStartDate(service string, t time.Time) error
