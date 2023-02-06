@@ -9,5 +9,5 @@ type MentionRecord struct {
 }
 
 func (s MentionRecord) TableName() string {
-	return "slack_mention_records"
+	return "slack_bot_mention_records"
 }

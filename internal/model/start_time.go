@@ -9,5 +9,5 @@ type StartTime struct {
 }
 
 func (s StartTime) TableName() string {
-	return "slack_start_time"
+	return "slack_bot_start_time"
 }
