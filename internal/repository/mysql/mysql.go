@@ -39,20 +39,20 @@ func New() (MysqlDao, error) {
 }
 
 func initMigration(db *gorm.DB) error {
-	if err := migrate(db, &model.Member{}); err != nil {
-		return err
+
+	tables := []interface{}{
+		&model.Member{},
+		&model.StartTime{},
+		&model.MentionRecord{},
+		&model.BotMessage{},
+		&model.Admin{},
+		&model.Subscriber{},
 	}
 
-	if err := migrate(db, &model.StartTime{}); err != nil {
-		return err
-	}
-
-	if err := migrate(db, &model.MentionRecord{}); err != nil {
-		return err
-	}
-
-	if err := migrate(db, &model.BotMessage{}); err != nil {
-		return err
+	for _, table := range tables {
+		if err := migrate(db, table); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -70,23 +70,49 @@ func notFound(err error) bool {
 	return errors.Is(err, gorm.ErrRecordNotFound)
 }
 
-func (dao MysqlDao) ListMember(service string) ([]model.Member, error) {
-	var member []model.Member
+func (dao MysqlDao) GetMember(service string, userID string) (model.Member, error) {
+	var member model.Member
+	err := dao.db.
+		Where("`service` = ?", service).
+		Where("`user_id` = ?", userID).
+		First(&member).Error
+	if err != nil {
+		return model.Member{}, err
+	}
+	return member, nil
+}
+
+func (dao MysqlDao) UpdateMember(member model.Member) error {
+	var id uint64
+	err := dao.db.
+		Model(&model.Member{}).
+		Select("`id`").
+		Where("`service` = ?", member.Service).
+		Where("`user_id` = ?", member.UserID).
+		First(&id).Error
+	if err != nil {
+		return err
+	}
+	member.ID = id
+	return dao.db.Save(&member).Error
+}
+
+func (dao MysqlDao) ListMembers(service string) ([]model.Member, error) {
+	var members []model.Member
 	err := dao.db.Where("`service` = ?", service).
-		Find(&member).Error
+		Find(&members).Error
 	if err != nil {
 		return nil, err
 	}
 
-	return member, nil
+	return members, nil
 }
 
-func (dao MysqlDao) UpdateMember(service string, member []model.Member) error {
+func (dao MysqlDao) ResetMembers(service string, member []model.Member) error {
 	return dao.db.Transaction(func(tx *gorm.DB) error {
 		// FIXME: need to query first and delete object by query result
 		if err := tx.Where("`service` = ?", service).
-			Where("`admin` <> ?", true).
-			Delete(&model.Member{}).Error; err != nil {
+			Delete(&model.Member{}).Error; err != nil && !notFound(err) {
 			return err
 		}
 
@@ -106,6 +132,16 @@ func (dao MysqlDao) UpdateMember(service string, member []model.Member) error {
 
 		return nil
 	})
+}
+
+func (dao MysqlDao) ListAllMembers() ([]model.Member, error) {
+	var members []model.Member
+	err := dao.db.Find(&members).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return members, nil
 }
 
 /*
@@ -268,4 +304,25 @@ func (dao MysqlDao) SetReplyMessage(msg model.BotMessage) error {
 
 		return tx.Create(&msg).Error
 	})
+}
+
+func (dao MysqlDao) GetSubscriber() ([]model.Subscriber, error) {
+	subscribers := []model.Subscriber{}
+	err := dao.db.Find(&subscribers).Error
+	if err != nil {
+		return nil, err
+	}
+	return subscribers, nil
+}
+
+func (dao MysqlDao) SetSubscriber(sub model.Subscriber) error {
+	err := dao.db.Save(&sub).Error
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (dao MysqlDao) DeleteSubscriber(sub model.Subscriber) error {
+	return dao.db.Where("`user_id` = ?", sub.UserID).Delete(&sub).Error
 }

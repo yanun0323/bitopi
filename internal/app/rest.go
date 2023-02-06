@@ -9,6 +9,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/robfig/cron/v3"
 	"github.com/spf13/viper"
 )
 
@@ -28,20 +29,20 @@ func Run() {
 		})
 	}, m...)
 
-	if err := initRouters(router); err != nil {
-		panic(fmt.Sprintf("initialize routers error, %+v", err))
+	if err := setupRouters(router); err != nil {
+		panic(fmt.Sprintf("setup routers error, %+v", err))
 	}
 
 	e.Start(":8001")
 }
 
-func initRouters(router *echo.Group) error {
+func setupRouters(router *echo.Group) error {
 	svc, err := service.New()
 	if err != nil {
 		return err
 	}
 
-	setBot(router, svc, service.SlackBotOption{
+	if err := setBot(router, svc, service.SlackBotOption{
 		Name:             "pm",
 		Token:            viper.GetString("pm.token"),
 		DefaultStartDate: util.NewDate(2022, 11, 27),
@@ -50,9 +51,11 @@ func initRouters(router *echo.Group) error {
 			{UserID: "U01THK4U2MD", UserName: "Momo"},
 		},
 		DefaultReplyMessage: "請稍候片刻，%s Support PM %s 將盡快為您服務 :smiling_face_with_3_hearts:",
-	})
+	}); err != nil {
+		return err
+	}
 
-	setBot(router, svc, service.SlackBotOption{
+	if err := setBot(router, svc, service.SlackBotOption{
 		Name:             "rails",
 		Token:            viper.GetString("rails.token"),
 		DefaultStartDate: util.NewDate(2022, 11, 6),
@@ -65,9 +68,11 @@ func initRouters(router *echo.Group) error {
 			{UserID: "U01GTQ8K52P", UserName: "Yuan"},
 		},
 		DefaultReplyMessage: "請稍候片刻，本週茅房廁紙 %s 會盡快為您服務 :smiling_face_with_3_hearts:",
-	})
+	}); err != nil {
+		return err
+	}
 
-	setBot(router, svc, service.SlackBotOption{
+	if err := setBot(router, svc, service.SlackBotOption{
 		Name:             "devops",
 		Token:            viper.GetString("devops.token"),
 		DefaultStartDate: util.NewDate(2022, 10, 23),
@@ -78,9 +83,11 @@ func initRouters(router *echo.Group) error {
 		},
 		DefaultReplyMessage: "請稍候片刻，本週猛哥/猛姐會盡快為您服務 :smiling_face_with_3_hearts:\nBito EX/Pro: %s\nMeta: %s",
 		DefaultMultiMember:  true,
-	})
+	}); err != nil {
+		return err
+	}
 
-	setBot(router, svc, service.SlackBotOption{
+	if err := setBot(router, svc, service.SlackBotOption{
 		Name:             "maid",
 		Token:            viper.GetString("maid.token"),
 		DefaultStartDate: util.NewDate(2022, 9, 25),
@@ -93,9 +100,11 @@ func initRouters(router *echo.Group) error {
 			{UserID: "U03MWAJDBV3", UserName: "Luki"},
 		},
 		DefaultReplyMessage: "請稍候片刻，本週女僕 %s 會盡快為您服務 :smiling_face_with_3_hearts:",
-	})
+	}); err != nil {
+		return err
+	}
 
-	setBot(router, svc, service.SlackBotOption{
+	if err := setBot(router, svc, service.SlackBotOption{
 		Name:             "test",
 		Token:            viper.GetString("test.token"),
 		DefaultStartDate: util.NewDate(2023, 1, 22),
@@ -105,15 +114,33 @@ func initRouters(router *echo.Group) error {
 			{UserID: "U032TJB1PE1", UserName: "Yanun"},
 		},
 		DefaultReplyMessage: "測試訊息，今日值日生 %s :smiling_face_with_3_hearts:",
-	})
+	}); err != nil {
+		return err
+	}
 
 	return nil
 }
 
-func setBot(router *echo.Group, svc service.Service, opt service.SlackBotOption) {
+func setBot(router *echo.Group, svc service.Service, opt service.SlackBotOption) error {
 	bot := service.NewBot(svc, opt)
 	action := service.NewInteraction(bot)
 
 	router.POST(fmt.Sprintf("/%s", bot.Name), bot.Handler)
 	router.POST(fmt.Sprintf("/%s/action", bot.Name), action.Handler)
+
+	if err := setupCron(bot, service.WeeklyNotifierOpt{}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func setupCron(bot service.SlackBot, opt service.WeeklyNotifierOpt) error {
+	job := service.NewWeeklyJob(bot, opt)
+	c := cron.New(cron.WithSeconds())
+	_, err := c.AddJob("TZ=Asia/Taipei 0 0 9 ? * 0", job)
+	if err != nil {
+		return err
+	}
+	return nil
 }

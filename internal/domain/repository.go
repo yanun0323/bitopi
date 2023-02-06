@@ -6,8 +6,13 @@ import (
 )
 
 type Repository interface {
-	ListMember(service string) ([]model.Member, error)
-	UpdateMember(service string, member []model.Member) error
+	GetMember(service string, userID string) (model.Member, error)
+	UpdateMember(member model.Member) error
+
+	ListMembers(service string) ([]model.Member, error)
+	ResetMembers(service string, member []model.Member) error
+
+	ListAllMembers() ([]model.Member, error)
 
 	// IsAdmin(name, service string) (bool, error)
 	// ListAdmin(service string) ([]string, error)
@@ -22,4 +27,8 @@ type Repository interface {
 
 	GetReplyMessage(service string) (model.BotMessage, error)
 	SetReplyMessage(msg model.BotMessage) error
+
+	GetSubscriber() ([]model.Subscriber, error)
+	SetSubscriber(sub model.Subscriber) error
+	DeleteSubscriber(sub model.Subscriber) error
 }

@@ -52,6 +52,9 @@ func (s SlackNotifier) Send(ctx context.Context, method string, url Url, msg Mes
 		return nil, 0, err
 	}
 
+	// XXX: Remove me
+	logs.New("slack notifier", 2).Debugf("slack response body:\n%s", string(respBody))
+
 	return respBody, resp.StatusCode, nil
 }
 
@@ -60,7 +63,9 @@ func (notifier SlackNotifier) request(token string, msg Messenger, method string
 	if err != nil {
 		return nil, err
 	}
-	logs.New("slack notifier", 2).Debugf("request body:\n%s", string(reqBody))
+	// XXX: Remove me
+	logs.New("slack notifier", 2).Debugf("slack request body:\n%s", string(reqBody))
+
 	req, err := http.NewRequest(method, url.String(), bytes.NewReader(reqBody))
 	if err != nil {
 		return nil, err

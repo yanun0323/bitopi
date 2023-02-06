@@ -136,13 +136,8 @@ func (svc *SlackBot) eventCallbackResponse(c echo.Context) interface{} {
 			return
 		}
 
-		if !rMsg.MentionMultiMember {
-			receiveMembers = append(receiveMembers, leftMembers...)
-		}
-		for _, member := range receiveMembers {
-			if err := svc.publishHomeView(notifier, member); err != nil {
-				svc.l.Errorf("publish home view error, %+v", err)
-			}
+		if err := svc.publishHomeView(notifier); err != nil {
+			svc.l.Errorf("publish home view error, %+v", err)
 		}
 	}()
 
@@ -211,13 +206,13 @@ func (svc *SlackBot) getStartDate() time.Time {
 }
 
 func (svc *SlackBot) listMember(mention bool) ([]string, error) {
-	members, err := svc.repo.ListMember(svc.Name)
+	members, err := svc.repo.ListMembers(svc.Name)
 	if err == nil && len(members) != 0 {
 		return svc.transferMembersToString(members, mention), nil
 	}
 	svc.l.Warnf("list member error, %+v", err)
 	svc.l.Warnf("reset member to database '%s'", svc.Name)
-	if err := svc.repo.UpdateMember(svc.Name, svc.DefaultMemberList); err != nil {
+	if err := svc.repo.ResetMembers(svc.Name, svc.DefaultMemberList); err != nil {
 		return nil, err
 	}
 

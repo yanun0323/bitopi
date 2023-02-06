@@ -116,14 +116,13 @@ func (svc *SlackInteraction) resendActionReply(mentionID string, payload map[str
 	svc.l.Debug("execute resend")
 	go func() {
 		notifier := util.NewSlackNotifier(svc.Token)
-		res, _, err := notifier.Send(svc.ctx, http.MethodPost, util.PostView,
+		_, _, err := notifier.Send(svc.ctx, http.MethodPost, util.PostView,
 			resendView(payload["trigger_id"].(string), mentionID),
 		)
 		if err != nil {
 			svc.l.Errorf("send resend action view error, %+v", err)
 			return
 		}
-		svc.l.Debugf("response:\n%s", string(res))
 	}()
 
 	return svc.noneInteractionReply(payload)
@@ -321,14 +320,13 @@ func (svc *SlackInteraction) setReply(payload map[string]interface{}) interface{
 	svc.l.Debug("execute set")
 	go func() {
 		notifier := util.NewSlackNotifier(svc.Token)
-		res, _, err := notifier.Send(svc.ctx, http.MethodPost, util.PostView,
+		_, _, err := notifier.Send(svc.ctx, http.MethodPost, util.PostView,
 			svc.settingView(payload["trigger_id"].(string)),
 		)
 		if err != nil {
 			svc.l.Errorf("send set action view error, %+v", err)
 			return
 		}
-		svc.l.Debugf("response:\n%s", string(res))
 	}()
 
 	return svc.noneInteractionReply(payload)

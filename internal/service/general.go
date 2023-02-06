@@ -20,11 +20,10 @@ func (svc *Service) ok(c echo.Context, i ...interface{}) error {
 }
 
 func (svc *Service) postMessage(notifier util.SlackNotifier, msg util.Messenger) error {
-	res, _, err := notifier.Send(svc.ctx, http.MethodPost, util.PostChat, msg)
+	_, _, err := notifier.Send(svc.ctx, http.MethodPost, util.PostChat, msg)
 	if err != nil {
 		return err
 	}
-	svc.l.Debugf("response:\n%s", string(res))
 	return nil
 }
 
