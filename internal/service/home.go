@@ -26,27 +26,12 @@ func (svc *SlackBot) publishHomeView(notifier util.SlackNotifier) error {
 		subscriberIDs[member.UserID] = true
 	}
 
-	userView, err := svc.getHomeView(false)
-	if err != nil {
-		return err
-	}
-
-	adminView, err := svc.getHomeView(true)
+	view, err := svc.getHomeView(false)
 	if err != nil {
 		return err
 	}
 
 	for subscriberID := range subscriberIDs {
-		isAdmin, err := svc.repo.IsAdmin(svc.Name, subscriberID)
-		if err != nil {
-			return err
-		}
-
-		view := userView
-		if isAdmin {
-			view = adminView
-		}
-
 		if _, _, err := notifier.Send(svc.ctx, http.MethodPost, util.PostHome, svc.createHomeViewRequest(view, subscriberID)); err != nil {
 			return err
 		}

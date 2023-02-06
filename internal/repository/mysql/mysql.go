@@ -146,6 +146,7 @@ func (dao MysqlDao) ListAllMembers() ([]model.Member, error) {
 
 func (dao MysqlDao) IsAdmin(service, userID string) (bool, error) {
 	err := dao.db.
+		Model(&model.Admin{}).
 		Where("`user_id` = ?", userID).
 		Where("`service` = ?", service).Error
 	if err == nil {
