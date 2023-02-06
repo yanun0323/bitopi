@@ -26,15 +26,28 @@ func (svc *SlackBot) publishHomeView(notifier util.SlackNotifier) error {
 		subscriberIDs[member.UserID] = true
 	}
 
-	// TODO: Add admin determine
-	view, err := svc.getHomeView(false)
+	userView, err := svc.getHomeView(false)
+	if err != nil {
+		return err
+	}
+
+	adminView, err := svc.getHomeView(true)
 	if err != nil {
 		return err
 	}
 
 	for subscriberID := range subscriberIDs {
-		_, _, err := notifier.Send(svc.ctx, http.MethodPost, util.PostHome, svc.createHomeViewRequest(view, subscriberID))
+		isAdmin, err := svc.repo.IsAdmin(svc.Name, subscriberID)
 		if err != nil {
+			return err
+		}
+
+		view := userView
+		if isAdmin {
+			view = adminView
+		}
+
+		if _, _, err := notifier.Send(svc.ctx, http.MethodPost, util.PostHome, svc.createHomeViewRequest(view, subscriberID)); err != nil {
 			return err
 		}
 	}
@@ -162,18 +175,3 @@ func (svc *SlackBot) getHomeView(isAdmin bool) (map[string]interface{}, error) {
 		),
 	}, nil
 }
-
-// TODO: Add to home view and validate is administrator
-/*
-	{
-		"type": "button",
-		"text": {
-			"type": "plain_text",
-			"text": "更改設定",
-			"emoji": true
-		},
-		"style": "primary",
-		"value": "set",
-		"action_id": "set"
-	},
-*/
