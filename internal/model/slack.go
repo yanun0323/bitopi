@@ -14,4 +14,5 @@ type SlackDirectMsgOption struct {
 	EventTimestamp  string
 	EventContent    string
 	Members         []string
+	ResendUserID    string
 }

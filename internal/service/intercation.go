@@ -177,7 +177,7 @@ func resendView(triggerID, data string) util.SlackViewMsg {
 					},
 					"label": {
 						"type": "plain_text",
-						"text": "選擇要轉傳通知的使用者",
+						"text": "選擇要轉傳通知的使用者(可複選)",
 						"emoji": true
 					}
 				},
@@ -196,6 +196,7 @@ func resendView(triggerID, data string) util.SlackViewMsg {
 	}
 }
 
+// TODO: Add resend user to resend message
 func (svc *SlackInteraction) viewSubmissionHandler(c echo.Context, payload map[string]interface{}) interface{} {
 	svc.l.Debug("handle view submission")
 	go func() {
@@ -221,6 +222,7 @@ func (svc *SlackInteraction) viewSubmissionHandler(c echo.Context, payload map[s
 		}
 
 		values := view["state"].(map[string]interface{})["values"].(map[string]interface{})
+		resendUserID := payload["user"].(map[string]interface{})["id"].(string)
 		users := []string{}
 		for _, v := range values {
 			selectAction := v.(map[string]interface{})["multi_users_select-action"]
@@ -241,6 +243,7 @@ func (svc *SlackInteraction) viewSubmissionHandler(c echo.Context, payload map[s
 			EventTimestamp:  record.Timestamp,
 			EventContent:    msg["text"].(string),
 			Members:         users,
+			ResendUserID:    resendUserID,
 		}); err != nil {
 			svc.l.Errorf("send reply direct message error, %+v", err)
 		}

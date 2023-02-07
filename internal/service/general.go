@@ -112,6 +112,9 @@ func (svc *Service) sendReplyDirectMessage(notifier util.SlackNotifier, opt mode
 		opt.User,
 		opt.Channel,
 	)
+	if len(opt.ResendUserID) != 0 {
+		directMessageText = directMessageText + fmt.Sprintf(" _轉傳自 <@%s>_", opt.ResendUserID)
+	}
 
 	for _, member := range opt.Members {
 		ch := member[2 : len(member)-1]
