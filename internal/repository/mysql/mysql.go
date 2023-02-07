@@ -100,6 +100,7 @@ func (dao MysqlDao) UpdateMember(member model.Member) error {
 func (dao MysqlDao) ListMembers(service string) ([]model.Member, error) {
 	var members []model.Member
 	err := dao.db.Where("`service` = ?", service).
+		Order("order").
 		Find(&members).Error
 	if err != nil {
 		return nil, err

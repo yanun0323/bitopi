@@ -27,7 +27,7 @@ func Run() {
 		}{
 			Msg: "OK",
 		})
-	}, m...)
+	})
 
 	if err := setupRouters(router); err != nil {
 		panic(fmt.Sprintf("setup routers error, %+v", err))
