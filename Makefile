@@ -13,7 +13,6 @@ build:	## Build backend Docker image
 docker.run:
 	docker run -d \
 	-p 8001:8001 \
-	--link mysql:mysql \
 	--name bitopi bitopi
 
 docker.up:
