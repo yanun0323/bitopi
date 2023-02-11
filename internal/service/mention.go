@@ -24,12 +24,13 @@ type SlackBot struct {
 }
 
 type SlackBotOption struct {
-	Name                string
-	Token               string
-	DefaultStartDate    time.Time
-	DefaultMemberList   []model.Member
-	DefaultReplyMessage string
-	DefaultMultiMember  bool
+	Name                    string
+	Token                   string
+	DefaultStartDate        time.Time
+	DefaultMemberList       []model.Member
+	DefaultReplyMessage     string
+	DefaultHomeReplyMessage string
+	DefaultMultiMember      bool
 }
 
 func NewBot(svc Service, opt SlackBotOption) SlackBot {
@@ -186,8 +187,13 @@ func (svc *SlackBot) getReplyMessage() (model.BotMessage, error) {
 	}
 
 	msg.Service = svc.Name
-	msg.MentionMessage = svc.DefaultReplyMessage
 	msg.MentionMultiMember = svc.DefaultMultiMember
+	msg.MentionMessage = svc.DefaultReplyMessage
+	msg.HomeMentionMessage = svc.DefaultHomeReplyMessage
+	if len(msg.HomeMentionMessage) == 0 {
+		msg.HomeMentionMessage = msg.MentionMessage
+	}
+
 	if err := svc.repo.SetReplyMessage(msg); err != nil {
 		return model.BotMessage{}, err
 	}

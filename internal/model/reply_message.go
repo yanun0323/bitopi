@@ -5,7 +5,7 @@ type BotMessage struct {
 	Service            string `gorm:"column:service;size:50"`
 	MentionMessage     string `gorm:"column:mention_message;size:255"`
 	MentionMultiMember bool   `gorm:"column:mention_multi_member;not null"`
-	WeeklyMessage      string `gorm:"column:weekly_message;size:255"`
+	HomeMentionMessage string `gorm:"column:home_mention_message;size:255"`
 }
 
 func (BotMessage) TableName() string {

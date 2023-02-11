@@ -50,7 +50,8 @@ func setupRouters(router *echo.Group) error {
 			{UserID: "U02223HG26L", UserName: "Rafeni"},
 			{UserID: "U01THK4U2MD", UserName: "Momo"},
 		},
-		DefaultReplyMessage: "請稍候片刻，%s Support PM %s 將盡快為您服務 :smiling_face_with_3_hearts:",
+		DefaultReplyMessage:     "請稍候片刻，%s Support PM %s 將盡快為您服務 :smiling_face_with_3_hearts:",
+		DefaultHomeReplyMessage: "今日 Support PM\n%s",
 	}); err != nil {
 		return err
 	}
@@ -67,7 +68,8 @@ func setupRouters(router *echo.Group) error {
 			{UserID: "U041HD3AQ3D", UserName: "Eric"},
 			{UserID: "U01GTQ8K52P", UserName: "Yuan"},
 		},
-		DefaultReplyMessage: "請稍候片刻，本週茅房廁紙 %s 會盡快為您服務 :smiling_face_with_3_hearts:",
+		DefaultReplyMessage:     "請稍候片刻，本週茅房廁紙 %s 會盡快為您服務 :smiling_face_with_3_hearts:",
+		DefaultHomeReplyMessage: "今日茅房廁紙\n%s",
 	}); err != nil {
 		return err
 	}
@@ -81,8 +83,9 @@ func setupRouters(router *echo.Group) error {
 			{UserID: "U03RQKWLG8Z", UserName: "Tina"},
 			{UserID: "U01A7LEG1CZ", UserName: "Harlan"},
 		},
-		DefaultReplyMessage: "請稍候片刻，本週猛哥/猛姐會盡快為您服務 :smiling_face_with_3_hearts:\nBito EX/Pro: %s\nMeta: %s",
-		DefaultMultiMember:  true,
+		DefaultReplyMessage:     "請稍候片刻，本週猛哥/猛姐會盡快為您服務 :smiling_face_with_3_hearts:\nBito EX/Pro: %s\nMeta: %s",
+		DefaultHomeReplyMessage: "本週猛哥/猛姐\nBito EX/Pro: %s\nMeta: %s",
+		DefaultMultiMember:      true,
 	}); err != nil {
 		return err
 	}
@@ -99,7 +102,8 @@ func setupRouters(router *echo.Group) error {
 			{UserID: "U036V8WPXDY", UserName: "Victor"},
 			{UserID: "U03MWAJDBV3", UserName: "Luki"},
 		},
-		DefaultReplyMessage: "請稍候片刻，本週女僕 %s 會盡快為您服務 :smiling_face_with_3_hearts:",
+		DefaultReplyMessage:     "請稍候片刻，本週女僕 %s 會盡快為您服務 :smiling_face_with_3_hearts:",
+		DefaultHomeReplyMessage: "本週女僕\n%s",
 	}); err != nil {
 		return err
 	}
@@ -113,7 +117,8 @@ func setupRouters(router *echo.Group) error {
 			{UserID: "U032TJB1PE1", UserName: "Yanun"},
 			{UserID: "U032TJB1PE1", UserName: "Yanun"},
 		},
-		DefaultReplyMessage: "測試訊息，今日值日生 %s :smiling_face_with_3_hearts:",
+		DefaultReplyMessage:     "測試訊息，今日值日生 %s :smiling_face_with_3_hearts:",
+		DefaultHomeReplyMessage: "今日值日生\n%s",
 	}); err != nil {
 		return err
 	}

@@ -100,7 +100,7 @@ func (dao MysqlDao) UpdateMember(member model.Member) error {
 func (dao MysqlDao) ListMembers(service string) ([]model.Member, error) {
 	var members []model.Member
 	err := dao.db.Where("`service` = ?", service).
-		Order("order").
+		Order("`order` DESC").
 		Find(&members).Error
 	if err != nil {
 		return nil, err
@@ -111,7 +111,6 @@ func (dao MysqlDao) ListMembers(service string) ([]model.Member, error) {
 
 func (dao MysqlDao) ResetMembers(service string, member []model.Member) error {
 	return dao.db.Transaction(func(tx *gorm.DB) error {
-		// FIXME: need to query first and delete object by query result
 		if err := tx.Where("`service` = ?", service).
 			Delete(&model.Member{}).Error; err != nil && !notFound(err) {
 			return err

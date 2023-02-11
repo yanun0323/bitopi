@@ -40,8 +40,6 @@ func (svc *SlackBot) publishHomeView(notifier util.SlackNotifier) error {
 	return nil
 }
 
-// TODO: Bot Home: updating App home information
-// after every api called and interactor and cronJob
 func (svc *SlackBot) createHomeViewRequest(view map[string]interface{}, userID string) *util.SlackHomeViewMsg {
 	return &util.SlackHomeViewMsg{
 		UserID: userID,
@@ -50,13 +48,13 @@ func (svc *SlackBot) createHomeViewRequest(view map[string]interface{}, userID s
 }
 
 func (svc *SlackBot) getHomeView(isAdmin bool) (map[string]interface{}, error) {
-	times, err := svc.repo.CountMentionRecord(svc.Name)
+	mentionTimes, err := svc.repo.CountMentionRecord(svc.Name)
 	if err != nil {
 		svc.l.Errorf("count mention record error, %+v", err)
 		return nil, err
 	}
 
-	dutyMember, _, err := svc.getDutyMember(false)
+	dutyMember, leftMembers, err := svc.getDutyMember(true)
 	if err != nil {
 		svc.l.Errorf("get duty member error, %+v", err)
 		return nil, err
@@ -66,6 +64,19 @@ func (svc *SlackBot) getHomeView(isAdmin bool) (map[string]interface{}, error) {
 	if err != nil {
 		svc.l.Errorf("list members error, %+v", err)
 		return nil, err
+	}
+
+	rMsg, err := svc.repo.GetReplyMessage(svc.Name)
+	if err != nil {
+		svc.l.Errorf("get reply message error, %+v")
+		return nil, err
+	}
+
+	replyText := ""
+	if rMsg.MentionMultiMember {
+		replyText = fmt.Sprintf(rMsg.HomeMentionMessage, dutyMember, strings.Join(leftMembers, " "))
+	} else {
+		replyText = fmt.Sprintf(rMsg.HomeMentionMessage, dutyMember)
 	}
 
 	history := `*更新歷史*
@@ -95,7 +106,7 @@ func (svc *SlackBot) getHomeView(isAdmin bool) (map[string]interface{}, error) {
 					"type": "section",
 					"text": {
 						"type": "mrkdwn",
-						"text": "*本週輪值人員* \n<@%s> \n\n*輪值人員順序* \n%s"
+						"text": "*%s* \n\n*輪值人員順序* \n%s"
 					}
 				},
 				{
@@ -152,9 +163,9 @@ func (svc *SlackBot) getHomeView(isAdmin bool) (map[string]interface{}, error) {
 					]
 				}
 			]`,
-			dutyMember,
+			replyText,
 			strings.Join(members, " "),
-			times,
+			mentionTimes,
 			adminSetButton,
 			history,
 		),
