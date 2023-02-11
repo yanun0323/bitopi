@@ -50,7 +50,7 @@ func setupRouters(router *echo.Group) error {
 			{UserID: "U02223HG26L", UserName: "Rafeni"},
 			{UserID: "U01THK4U2MD", UserName: "Momo"},
 		},
-		DefaultReplyMessage:     "請稍候片刻，%s Support PM %s 將盡快為您服務 :smiling_face_with_3_hearts:",
+		DefaultReplyMessage:     "請稍候片刻，本週 Support PM %s 將盡快為您服務 :smiling_face_with_3_hearts:",
 		DefaultHomeReplyMessage: "*本週 Support PM*\n%s",
 	}); err != nil {
 		return err
