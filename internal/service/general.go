@@ -107,7 +107,7 @@ func (svc *Service) sendReplyDirectMessage(notifier util.SlackNotifier, opt mode
 		return err
 	}
 
-	directMessageText := fmt.Sprintf("*<%s|新訊息> 來自 <@%s> <#%s>*",
+	directMessageText := fmt.Sprintf("*<%s|新的提及> 來自 <@%s> <#%s>*",
 		link,
 		opt.User,
 		opt.Channel,

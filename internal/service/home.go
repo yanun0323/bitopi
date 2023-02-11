@@ -106,7 +106,7 @@ func (svc *SlackBot) getHomeView(isAdmin bool) (map[string]interface{}, error) {
 					"type": "section",
 					"text": {
 						"type": "mrkdwn",
-						"text": "*%s* \n\n*輪值人員順序* \n%s"
+						"text": "%s \n\n*輪值人員順序* \n%s"
 					}
 				},
 				{
