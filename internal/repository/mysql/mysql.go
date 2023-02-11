@@ -3,6 +3,7 @@ package mysql
 import (
 	"bitopi/internal/model"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/pkg/errors"
@@ -100,11 +101,15 @@ func (dao MysqlDao) UpdateMember(member model.Member) error {
 func (dao MysqlDao) ListMembers(service string) ([]model.Member, error) {
 	var members []model.Member
 	err := dao.db.Where("`service` = ?", service).
-		Order("`order` DESC").
+		Order("`order`").
 		Find(&members).Error
 	if err != nil {
 		return nil, err
 	}
+
+	sort.Slice(members, func(i, j int) bool {
+		return members[i].Order < members[j].Order
+	})
 
 	return members, nil
 }
