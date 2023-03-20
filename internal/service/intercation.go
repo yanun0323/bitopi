@@ -32,7 +32,7 @@ func (svc *SlackInteraction) Handler(c echo.Context) error {
 func (svc *SlackInteraction) interactionResponse(c echo.Context) interface{} {
 	payload, err := svc.parsePayload(c)
 	if err != nil || payload == nil {
-		svc.l.Errorf("parse payload error, %+v", err)
+		svc.l.Errorf("parse payload failed, err: %+v", err)
 	}
 
 	switch payload["type"].(string) {
@@ -81,7 +81,7 @@ func (svc *SlackInteraction) parsePayload(c echo.Context) (map[string]interface{
 func (svc *SlackInteraction) actionHandler(payload map[string]interface{}) interface{} {
 	action, err := svc.parseAction(payload)
 	if err != nil {
-		svc.l.Errorf("parse action error, %+v", err)
+		svc.l.Errorf("parse action failed, err: %+v", err)
 		return svc.noneInteractionReply(payload)
 	}
 
@@ -120,7 +120,7 @@ func (svc *SlackInteraction) resendActionReply(mentionID string, payload map[str
 			resendView(payload["trigger_id"].(string), mentionID),
 		)
 		if err != nil {
-			svc.l.Errorf("send resend action view error, %+v", err)
+			svc.l.Errorf("send resend action view failed, err: %+v", err)
 			return
 		}
 	}()
@@ -204,20 +204,20 @@ func (svc *SlackInteraction) viewSubmissionHandler(c echo.Context, payload map[s
 		mentionID := view["private_metadata"].(string)
 		id, err := strconv.Atoi(mentionID)
 		if err != nil {
-			svc.l.Errorf("convert mention ID error, %+v", err)
+			svc.l.Errorf("convert mention ID failed, err: %+v", err)
 			return
 		}
 
 		record, err := svc.repo.GetMentionRecord(uint64(id))
 		if err != nil {
-			svc.l.Errorf("get mention record error, %+v", err)
+			svc.l.Errorf("get mention record failed, err: %+v", err)
 			return
 		}
 
 		notifier := util.NewSlackNotifier(svc.Token)
 		msg, err := svc.getMessage(notifier, record.Channel, record.Timestamp)
 		if err != nil {
-			svc.l.Errorf("get message from slack error, %+v", err)
+			svc.l.Errorf("get message from slack failed, err: %+v", err)
 			return
 		}
 
@@ -239,13 +239,13 @@ func (svc *SlackInteraction) viewSubmissionHandler(c echo.Context, payload map[s
 			MentionRecordID: mentionID,
 			ServiceName:     svc.Name,
 			User:            msg["user"].(string),
-			Channel:         record.Channel,
-			EventTimestamp:  record.Timestamp,
+			LinkChannel:     record.Channel,
+			LinkTimestamp:   record.Timestamp,
 			EventContent:    msg["text"].(string),
 			Members:         users,
 			ResendUserID:    resendUserID,
 		}); err != nil {
-			svc.l.Errorf("send reply direct message error, %+v", err)
+			svc.l.Errorf("send reply direct message failed, err: %+v", err)
 		}
 	}()
 
@@ -263,7 +263,7 @@ func (svc *SlackInteraction) closeViewReply() interface{} {
 func (svc *SlackInteraction) homeHandler(payload map[string]interface{}) interface{} {
 	action, err := svc.parseAction(payload)
 	if err != nil {
-		svc.l.Errorf("parse action error, %+v", err)
+		svc.l.Errorf("parse action failed, err: %+v", err)
 		return svc.noneInteractionReply(payload)
 	}
 
@@ -281,7 +281,7 @@ func (svc *SlackInteraction) homeHandler(payload map[string]interface{}) interfa
 func (svc *SlackInteraction) clearReply(payload map[string]interface{}) interface{} {
 	channel, err := svc.getDirectChannel(payload["user"].(map[string]interface{})["id"].(string), svc.Token)
 	if err != nil || len(channel) == 0 {
-		svc.l.Errorf("get channel error, %+v", err)
+		svc.l.Errorf("get channel failed, err: %+v", err)
 		return svc.noneInteractionReply(payload)
 	}
 
@@ -295,7 +295,7 @@ func (svc *SlackInteraction) clearReply(payload map[string]interface{}) interfac
 	data := map[string]interface{}{}
 	json.Unmarshal(res, &data)
 	if err != nil {
-		svc.l.Errorf("parse data error, %+v", err)
+		svc.l.Errorf("parse data failed, err: %+v", err)
 		return svc.noneInteractionReply(payload)
 	}
 
@@ -327,7 +327,7 @@ func (svc *SlackInteraction) setReply(payload map[string]interface{}) interface{
 			svc.settingView(payload["trigger_id"].(string)),
 		)
 		if err != nil {
-			svc.l.Errorf("send set action view error, %+v", err)
+			svc.l.Errorf("send set action view failed, err: %+v", err)
 			return
 		}
 	}()

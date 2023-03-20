@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	"github.com/pkg/errors"
-	"github.com/yanun0323/pkg/logs"
 )
 
 type NotifierType uint8
@@ -53,7 +52,7 @@ func (s SlackNotifier) Send(ctx context.Context, method string, url Url, msg Mes
 	}
 
 	// XXX: Remove me
-	logs.New("slack notifier", 2).Debugf("slack response body:\n%s", string(respBody))
+	// logs.New("slack notifier", 2).Debugf("slack response body:\n%s", string(respBody))
 
 	return respBody, resp.StatusCode, nil
 }
@@ -64,7 +63,7 @@ func (notifier SlackNotifier) request(token string, msg Messenger, method string
 		return nil, err
 	}
 	// XXX: Remove me
-	logs.New("slack notifier", 2).Debugf("slack request body:\n%s", string(reqBody))
+	// logs.New("slack notifier", 2).Debugf("slack request body:\n%s", string(reqBody))
 
 	req, err := http.NewRequest(method, url.String(), bytes.NewReader(reqBody))
 	if err != nil {

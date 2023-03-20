@@ -19,12 +19,12 @@ func (svc *Service) ok(c echo.Context, i ...interface{}) error {
 	return c.JSON(http.StatusOK, nil)
 }
 
-func (svc *Service) postMessage(notifier util.SlackNotifier, msg util.Messenger) error {
-	_, _, err := notifier.Send(svc.ctx, http.MethodPost, util.PostChat, msg)
+func (svc *Service) postMessage(notifier util.SlackNotifier, msg util.Messenger) ([]byte, error) {
+	res, _, err := notifier.Send(svc.ctx, http.MethodPost, util.PostChat, msg)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return res, nil
 }
 
 func (svc *Service) getMessage(notifier util.SlackNotifier, channel, ts string) (map[string]interface{}, error) {
@@ -102,7 +102,7 @@ func (svc *Service) getPermalink(notifier util.SlackNotifier, channel, messageTi
 }
 
 func (svc *Service) sendReplyDirectMessage(notifier util.SlackNotifier, opt model.SlackDirectMsgOption) error {
-	link, err := svc.getPermalink(notifier, opt.Channel, opt.EventTimestamp)
+	link, err := svc.getPermalink(notifier, opt.LinkChannel, opt.LinkTimestamp)
 	if err != nil {
 		return err
 	}
@@ -110,7 +110,7 @@ func (svc *Service) sendReplyDirectMessage(notifier util.SlackNotifier, opt mode
 	directMessageText := fmt.Sprintf("*<%s|新的提及> 來自 <@%s> <#%s>*",
 		link,
 		opt.User,
-		opt.Channel,
+		opt.LinkChannel,
 	)
 	if len(opt.ResendUserID) != 0 {
 		directMessageText = directMessageText + fmt.Sprintf(" _轉傳自 <@%s>_", opt.ResendUserID)
@@ -138,7 +138,7 @@ func (svc *Service) sendReplyDirectMessage(notifier util.SlackNotifier, opt mode
 			},
 		)
 
-		if err := svc.postMessage(notifier, msg); err != nil {
+		if _, err := svc.postMessage(notifier, msg); err != nil {
 			return err
 		}
 	}

@@ -1,0 +1,59 @@
+{
+    "ok": true,
+    "channel": "C018CDLRJF2",
+    "ts": "1679318228.460309",
+    "message": {
+        "bot_id": "B043X8NC5PE",
+        "type": "message",
+        "text": "\u6e2c\u8a66\u8a0a\u606f\uff0c\u4eca\u65e5\u503c\u65e5\u751f <@U032TJB1PE1> :smiling_face_with_3_hearts:",
+        "user": "U043E8B1B7Z",
+        "ts": "1679318228.460309",
+        "app_id": "A043UQ58LFL",
+        "blocks": [
+            {
+                "type": "rich_text",
+                "block_id": "CjjS",
+                "elements": [
+                    {
+                        "type": "rich_text_section",
+                        "elements": [
+                            {
+                                "type": "text",
+                                "text": "\u6e2c\u8a66\u8a0a\u606f\uff0c\u4eca\u65e5\u503c\u65e5\u751f "
+                            },
+                            {
+                                "type": "user",
+                                "user_id": "U032TJB1PE1"
+                            },
+                            {
+                                "type": "text",
+                                "text": " "
+                            },
+                            {
+                                "type": "emoji",
+                                "name": "smiling_face_with_3_hearts",
+                                "unicode": "1f970"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        "team": "TGQCRQ19V",
+        "bot_profile": {
+            "id": "B043X8NC5PE",
+            "app_id": "A043UQ58LFL",
+            "name": "Gura",
+            "icons": {
+                "image_36": "https:\/\/avatars.slack-edge.com\/2022-10-29\/4288060158566_0c0a96da2eb22f9e7f24_36.jpg",
+                "image_48": "https:\/\/avatars.slack-edge.com\/2022-10-29\/4288060158566_0c0a96da2eb22f9e7f24_48.jpg",
+                "image_72": "https:\/\/avatars.slack-edge.com\/2022-10-29\/4288060158566_0c0a96da2eb22f9e7f24_72.jpg"
+            },
+            "deleted": false,
+            "updated": 1669556877,
+            "team_id": "TGQCRQ19V"
+        },
+        "thread_ts": "1679318227.327309",
+        "parent_user_id": "U032TJB1PE1"
+    }
+}

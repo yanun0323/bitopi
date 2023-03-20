@@ -30,7 +30,7 @@ func Run() {
 	})
 
 	if err := setupRouters(router); err != nil {
-		panic(fmt.Sprintf("setup routers error, %+v", err))
+		panic(fmt.Sprintf("setup routers failed, err: %+v", err))
 	}
 
 	e.Start(":8001")

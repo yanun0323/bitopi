@@ -19,7 +19,7 @@ func (svc *WeeklyNotifier) Run() {
 	notifier := util.NewSlackNotifier(svc.SlackBot.Token)
 	err := svc.SlackBot.publishHomeView(notifier)
 	if err != nil {
-		svc.l.Errorf("publish home view tab error, %+v", err)
+		svc.l.Errorf("publish home view tab failed, err: %+v", err)
 		return
 	}
 }

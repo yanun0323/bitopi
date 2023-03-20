@@ -50,25 +50,25 @@ func (svc *SlackBot) createHomeViewRequest(view map[string]interface{}, userID s
 func (svc *SlackBot) getHomeView(isAdmin bool) (map[string]interface{}, error) {
 	mentionTimes, err := svc.repo.CountMentionRecord(svc.Name)
 	if err != nil {
-		svc.l.Errorf("count mention record error, %+v", err)
+		svc.l.Errorf("count mention record failed, err: %+v", err)
 		return nil, err
 	}
 
 	dutyMember, leftMembers, err := svc.getDutyMember(true)
 	if err != nil {
-		svc.l.Errorf("get duty member error, %+v", err)
+		svc.l.Errorf("get duty member failed, err: %+v", err)
 		return nil, err
 	}
 
 	members, err := svc.listMember(true)
 	if err != nil {
-		svc.l.Errorf("list members error, %+v", err)
+		svc.l.Errorf("list members failed, err: %+v", err)
 		return nil, err
 	}
 
 	rMsg, err := svc.repo.GetReplyMessage(svc.Name)
 	if err != nil {
-		svc.l.Errorf("get reply message error, %+v")
+		svc.l.Errorf("get reply message failed, err: %+v")
 		return nil, err
 	}
 
