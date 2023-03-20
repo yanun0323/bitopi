@@ -81,6 +81,7 @@ func (svc *SlackBot) getHomeView(isAdmin bool) (map[string]interface{}, error) {
 
 	history := `*更新歷史*
 - 2023.1 新增私訊通知功能/新增首頁按鈕
+- 2023.3 修改私訊的提及連結到對話串
 `
 
 	adminSetButton := ""
