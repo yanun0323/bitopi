@@ -6,6 +6,7 @@ import (
 	"bitopi/internal/util"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -43,9 +44,11 @@ func setupRouters(router *echo.Group) error {
 	}
 
 	if err := setBot(router, svc, service.SlackBotOption{
-		Name:             "pm",
-		Token:            viper.GetString("pm.token"),
-		DefaultStartDate: util.NewDate(2022, 11, 27),
+		Name:                      "pm",
+		Token:                     viper.GetString("pm.token"),
+		DefaultStartDate:          util.NewDate(2022, 11, 27),
+		DefaultDutyDuration:       time.Hour * 24 * 7,
+		DefaultMemberCountPerTime: 1,
 		DefaultMemberList: []model.Member{
 			{UserID: "U02223HG26L", UserName: "Rafeni"},
 			{UserID: "U01THK4U2MD", UserName: "Momo"},
@@ -57,9 +60,11 @@ func setupRouters(router *echo.Group) error {
 	}
 
 	if err := setBot(router, svc, service.SlackBotOption{
-		Name:             "rails",
-		Token:            viper.GetString("rails.token"),
-		DefaultStartDate: util.NewDate(2022, 11, 6),
+		Name:                      "rails",
+		Token:                     viper.GetString("rails.token"),
+		DefaultStartDate:          util.NewDate(2022, 11, 6),
+		DefaultDutyDuration:       time.Hour * 24 * 7,
+		DefaultMemberCountPerTime: 1,
 		DefaultMemberList: []model.Member{
 			{UserID: "U0156SRG9GW", UserName: "Gmi"},
 			{UserID: "UKL1DAL4E", UserName: "Barry"},
@@ -75,9 +80,11 @@ func setupRouters(router *echo.Group) error {
 	}
 
 	if err := setBot(router, svc, service.SlackBotOption{
-		Name:             "devops",
-		Token:            viper.GetString("devops.token"),
-		DefaultStartDate: util.NewDate(2022, 10, 23),
+		Name:                      "devops",
+		Token:                     viper.GetString("devops.token"),
+		DefaultStartDate:          util.NewDate(2022, 10, 23),
+		DefaultDutyDuration:       time.Hour * 24 * 7,
+		DefaultMemberCountPerTime: 1,
 		DefaultMemberList: []model.Member{
 			{UserID: "U03FDTNPWBW", UserName: "Lawrence"},
 			{UserID: "U03RQKWLG8Z", UserName: "Tina"},
@@ -91,9 +98,11 @@ func setupRouters(router *echo.Group) error {
 	}
 
 	if err := setBot(router, svc, service.SlackBotOption{
-		Name:             "maid",
-		Token:            viper.GetString("maid.token"),
-		DefaultStartDate: util.NewDate(2022, 9, 25),
+		Name:                      "maid",
+		Token:                     viper.GetString("maid.token"),
+		DefaultStartDate:          util.NewDate(2022, 9, 25),
+		DefaultDutyDuration:       time.Hour * 24 * 7,
+		DefaultMemberCountPerTime: 1,
 		DefaultMemberList: []model.Member{
 			{UserID: "U032TJB1PE1", UserName: "Yanun"},
 			{UserID: "U03ECC8Q61E", UserName: "Howard"},
@@ -109,9 +118,11 @@ func setupRouters(router *echo.Group) error {
 	}
 
 	if err := setBot(router, svc, service.SlackBotOption{
-		Name:             "test",
-		Token:            viper.GetString("test.token"),
-		DefaultStartDate: util.NewDate(2023, 1, 22),
+		Name:                      "test",
+		Token:                     viper.GetString("test.token"),
+		DefaultStartDate:          util.NewDate(2023, 1, 22),
+		DefaultDutyDuration:       time.Hour * 24 * 7,
+		DefaultMemberCountPerTime: 1,
 		DefaultMemberList: []model.Member{
 			{UserID: "U032TJB1PE1", UserName: "Yanun"},
 			{UserID: "U032TJB1PE1", UserName: "Yanun"},

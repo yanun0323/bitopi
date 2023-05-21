@@ -22,6 +22,9 @@ type Repository interface {
 	GetStartDate(service string) (time.Time, error)
 	UpdateStartDate(service string, t time.Time) error
 
+	GetDutyDuration(service string) (time.Duration, error)
+	GetDutyMemberCountPerTime(service string) (int, error)
+
 	CountMentionRecord(service string) (int64, error)
 	GetMentionRecord(id uint64) (model.MentionRecord, error)
 	FindOrCreateMentionRecord(service, channel, timestamp string) (id uint64, found bool, err error)

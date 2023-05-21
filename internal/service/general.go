@@ -124,6 +124,7 @@ func (svc *Service) sendReplyDirectMessage(notifier util.SlackNotifier, opt mode
 				return err
 			}
 		}
+
 		msg := util.SlackReplyMsg{
 			Text:    directMessageText,
 			Channel: ch,
@@ -133,8 +134,9 @@ func (svc *Service) sendReplyDirectMessage(notifier util.SlackNotifier, opt mode
 			"footer", opt.EventContent,
 			"callback_id", fmt.Sprintf("%s_direct_message_action", opt.ServiceName),
 			"actions", []model.SlackActionButton{
-				model.NewSlackActionButton("primary", opt.MentionRecordID, "轉傳給..."),
-				model.NewSlackActionButton("danger", "delete", "刪除"),
+				model.NewSlackActionButton("primary", svc.actionValue(opt.MentionRecordID, "resend"), "轉傳給..."),
+				model.NewSlackActionButton("danger", svc.actionValue(opt.MentionRecordID, "delete"), "刪除"),
+				model.NewSlackActionButton("default", svc.actionValue(opt.MentionRecordID, "delete.and.reply"), "刪除並回覆"),
 			},
 		)
 
@@ -143,4 +145,8 @@ func (svc *Service) sendReplyDirectMessage(notifier util.SlackNotifier, opt mode
 		}
 	}
 	return nil
+}
+
+func (svc *Service) actionValue(id, action string) string {
+	return id + "," + action
 }

@@ -8,6 +8,8 @@ require (
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/spf13/viper v1.13.0
 	github.com/yanun0323/pkg v1.0.6
+	gopkg.in/guregu/null.v3 v3.5.0
+	gopkg.in/guregu/null.v4 v4.0.0
 	gorm.io/driver/mysql v1.4.5
 	gorm.io/gorm v1.23.10
 )

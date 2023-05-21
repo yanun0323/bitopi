@@ -25,13 +25,15 @@ type SlackBot struct {
 }
 
 type SlackBotOption struct {
-	Name                    string
-	Token                   string
-	DefaultStartDate        time.Time
-	DefaultMemberList       []model.Member
-	DefaultReplyMessage     string
-	DefaultHomeReplyMessage string
-	DefaultMultiMember      bool
+	Name                      string
+	Token                     string
+	DefaultStartDate          time.Time
+	DefaultDutyDuration       time.Duration
+	DefaultMemberCountPerTime int
+	DefaultMemberList         []model.Member
+	DefaultReplyMessage       string
+	DefaultHomeReplyMessage   string
+	DefaultMultiMember        bool
 }
 
 func NewBot(svc Service, opt SlackBotOption) SlackBot {
@@ -100,7 +102,10 @@ func (svc *SlackBot) eventCallbackResponse(c echo.Context) interface{} {
 		return nil
 	}
 
-	dutyMember, leftMembers, err := svc.getDutyMember(true)
+	startDate := svc.getStartDate()
+	dutyDuration := svc.getDutyDuration()
+	dutyMemberCountPerTime := svc.getDutyMemberCountPerTime()
+	dutyMember, leftMembers, err := svc.getDutyMember(true, startDate, dutyMemberCountPerTime, dutyDuration)
 	if err != nil {
 		svc.l.Errorf("get duty member failed, err: %+v", err)
 		return nil
@@ -135,7 +140,7 @@ func (svc *SlackBot) eventCallbackResponse(c echo.Context) interface{} {
 	}
 
 	go func() {
-		receiveMembers := []string{dutyMember}
+		receiveMembers := dutyMember
 		if rMsg.MentionMultiMember {
 			receiveMembers = append(receiveMembers, leftMembers...)
 		}
@@ -165,8 +170,7 @@ func (svc *SlackBot) recordMention(slackEventApi model.SlackEventAPI) (uint64, b
 	return svc.repo.FindOrCreateMentionRecord(svc.Name, slackEventApi.Event.Channel, slackEventApi.Event.EventTimeStamp)
 }
 
-func (svc *SlackBot) getDutyMember(mention bool) (string, []string, error) {
-	startDate := svc.getStartDate()
+func (svc *SlackBot) getDutyMember(mention bool, startDate time.Time, dutyCount int, dutyDuration time.Duration) ([]string, []string, error) {
 	now := time.Now()
 	svc.l.Debug("time start: ", startDate.Format("20060102 15:04:05 MST"))
 	svc.l.Debug("time now: ", now.Format("20060102 15:04:05 MST"))
@@ -177,19 +181,33 @@ func (svc *SlackBot) getDutyMember(mention bool) (string, []string, error) {
 
 	member, err := svc.listMember(mention)
 	if err != nil {
-		return "", nil, err
+		return nil, nil, err
 	}
 
-	index := int(weekFromStartDate % int64(len(member)))
+	dutyWeek := int(dutyDuration / (time.Hour * 24 * 7))
+	passedRound := (int(weekFromStartDate) / dutyWeek)
+	index := passedRound * dutyCount % len(member)
+
 	svc.l.Debug("member list: ", member)
 	svc.l.Debug("index: ", index)
-	left := make([]string, 0, len(member)-1)
-	for i, m := range member {
-		if i != index {
-			left = append(left, m)
+	duty := make([]string, 0, dutyCount)
+	left := make([]string, 0, len(member)-dutyCount)
+	for ; len(duty) < dutyCount; index++ {
+		if index >= len(member) {
+			index = 0
 		}
+		duty = append(duty, member[index])
+		member[index] = ""
 	}
-	return member[index], left, nil
+
+	for _, mem := range member {
+		if len(mem) == 0 {
+			continue
+		}
+		left = append(left, mem)
+	}
+
+	return duty, left, nil
 }
 
 func (svc *SlackBot) getReplyMessage() (model.BotMessage, error) {
@@ -227,6 +245,24 @@ func (svc *SlackBot) getStartDate() time.Time {
 	return startDate
 }
 
+func (svc *SlackBot) getDutyDuration() time.Duration {
+	dutyDuration, err := svc.repo.GetDutyDuration(svc.Name)
+	if err != nil || dutyDuration == 0 {
+		svc.l.Warnf("get duty duration, err: %+v", err)
+		return svc.DefaultDutyDuration
+	}
+	return dutyDuration
+}
+
+func (svc *SlackBot) getDutyMemberCountPerTime() int {
+	dutyMemberCountPerTime, err := svc.repo.GetDutyMemberCountPerTime(svc.Name)
+	if err != nil || dutyMemberCountPerTime == 0 {
+		svc.l.Warnf("get duty member count per time, err: %+v", err)
+		return svc.DefaultMemberCountPerTime
+	}
+	return dutyMemberCountPerTime
+}
+
 func (svc *SlackBot) listMember(mention bool) ([]string, error) {
 	members, err := svc.repo.ListMembers(svc.Name)
 	if err == nil && len(members) != 0 {
@@ -253,12 +289,12 @@ func (svc *SlackBot) transferMembersToString(members []model.Member, mention boo
 	return s
 }
 
-func (svc *SlackBot) sendMentionReply(notifier util.SlackNotifier, slackEventApi model.SlackEventAPI, dutyMember string, leftMembers []string, rMsg model.BotMessage) ([]byte, error) {
+func (svc *SlackBot) sendMentionReply(notifier util.SlackNotifier, slackEventApi model.SlackEventAPI, dutyMember []string, leftMembers []string, rMsg model.BotMessage) ([]byte, error) {
 	replyText := ""
 	if rMsg.MentionMultiMember {
-		replyText = fmt.Sprintf(rMsg.MentionMessage, dutyMember, strings.Join(leftMembers, " "))
+		replyText = fmt.Sprintf(rMsg.MentionMessage, strings.Join(dutyMember, " "), strings.Join(leftMembers, " "))
 	} else {
-		replyText = fmt.Sprintf(rMsg.MentionMessage, dutyMember)
+		replyText = fmt.Sprintf(rMsg.MentionMessage, strings.Join(dutyMember, " "))
 	}
 
 	res, err := svc.postMessage(notifier, util.SlackReplyMsg{

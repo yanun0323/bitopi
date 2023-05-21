@@ -52,6 +52,8 @@ type SlackReplyMsg struct {
 	Channel     string                   `json:"channel"`
 	UserName    string                   `json:"username,omitempty"`
 	TimeStamp   string                   `json:"thread_ts"`
+	UnfurlLinks bool                     `json:"unfurl_links"`
+	UnfurlMedia bool                     `json:"unfurl_media"`
 	Attachments []map[string]interface{} `json:"attachments,omitempty"`
 }
 

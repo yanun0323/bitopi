@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 )
 
 func (svc *SlackBot) publishHomeView(notifier util.SlackNotifier) error {
@@ -54,12 +55,6 @@ func (svc *SlackBot) getHomeView(isAdmin bool) (map[string]interface{}, error) {
 		return nil, err
 	}
 
-	dutyMember, leftMembers, err := svc.getDutyMember(true)
-	if err != nil {
-		svc.l.Errorf("get duty member failed, err: %+v", err)
-		return nil, err
-	}
-
 	members, err := svc.listMember(true)
 	if err != nil {
 		svc.l.Errorf("list members failed, err: %+v", err)
@@ -72,16 +67,27 @@ func (svc *SlackBot) getHomeView(isAdmin bool) (map[string]interface{}, error) {
 		return nil, err
 	}
 
+	startDate := svc.getStartDate()
+	dutyDuration := svc.getDutyDuration()
+	dutyMemberCountPerTime := svc.getDutyMemberCountPerTime()
+
+	dutyMember, leftMembers, err := svc.getDutyMember(true, startDate, dutyMemberCountPerTime, dutyDuration)
+	if err != nil {
+		svc.l.Errorf("get duty member failed, err: %+v", err)
+		return nil, err
+	}
+
 	replyText := ""
 	if rMsg.MentionMultiMember {
-		replyText = fmt.Sprintf(rMsg.HomeMentionMessage, dutyMember, strings.Join(leftMembers, " "))
+		replyText = fmt.Sprintf(rMsg.HomeMentionMessage, strings.Join(dutyMember, " "), strings.Join(leftMembers, " "))
 	} else {
-		replyText = fmt.Sprintf(rMsg.HomeMentionMessage, dutyMember)
+		replyText = fmt.Sprintf(rMsg.HomeMentionMessage, strings.Join(dutyMember, " "))
 	}
 
 	history := `*更新歷史*
-- 2023.1 新增私訊通知功能/新增首頁按鈕
+- 2023.5 新增調整值班人數及時間、新增
 - 2023.3 修改私訊的提及連結到對話串
+- 2023.1 新增私訊通知功能/新增首頁按鈕
 `
 
 	adminSetButton := ""
@@ -109,6 +115,15 @@ func (svc *SlackBot) getHomeView(isAdmin bool) (map[string]interface{}, error) {
 						"type": "mrkdwn",
 						"text": "%s \n\n*輪值人員順序* \n%s"
 					}
+				},
+				{
+					"type": "context",
+					"elements": [
+						{
+							"type": "mrkdwn",
+							"text": "每次 %d 人輪值，為期 %d 週"
+						}
+					]
 				},
 				{
 					"type": "context",
@@ -166,6 +181,8 @@ func (svc *SlackBot) getHomeView(isAdmin bool) (map[string]interface{}, error) {
 			]`,
 			replyText,
 			strings.Join(members, " "),
+			dutyMemberCountPerTime,
+			dutyDuration/(time.Hour*24*7),
 			mentionTimes,
 			adminSetButton,
 			history,

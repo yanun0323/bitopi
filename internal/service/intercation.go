@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/labstack/echo/v4"
 	"github.com/pkg/errors"
@@ -36,11 +37,11 @@ func (svc *SlackInteraction) interactionResponse(c echo.Context) interface{} {
 	}
 
 	switch payload["type"].(string) {
-	case "view_submission":
+	case "view_submission": /* .handle action from action block view */
 		return svc.viewSubmissionHandler(c, payload)
-	case "interactive_message":
+	case "interactive_message": /* handle action from button of bot direct message */
 		return svc.actionHandler(payload)
-	case "block_actions":
+	case "block_actions": /* handle action from button of bot home*/
 		return svc.homeHandler(payload)
 	default:
 		return svc.noneInteractionReply(payload)
@@ -78,18 +79,37 @@ func (svc *SlackInteraction) parsePayload(c echo.Context) (map[string]interface{
 	return payload, nil
 }
 
-func (svc *SlackInteraction) actionHandler(payload map[string]interface{}) interface{} {
-	action, err := svc.parseAction(payload)
+func (svc *SlackInteraction) parseActionValue(payload map[string]interface{}) (id, value string, err error) {
+	v, err := svc.parseAction(payload)
 	if err != nil {
-		svc.l.Errorf("parse action failed, err: %+v", err)
+		return "", "", err
+	}
+
+	vs := strings.Split(v, ",")
+	if len(vs) != 2 {
+		return "", "", errors.Errorf("mismatch action value length: %d", len(vs))
+	}
+	return vs[0], vs[1], nil
+}
+
+func (svc *SlackInteraction) actionHandler(payload map[string]interface{}) interface{} {
+	id, action, err := svc.parseActionValue(payload)
+	if err != nil {
+		svc.l.Errorf("parse action, err: %+v", err)
 		return svc.noneInteractionReply(payload)
 	}
 
+	svc.l.Infof("action: %s", action)
 	switch action {
 	case "delete":
 		return svc.deleteActionReply()
-	default: /* resend action */
-		return svc.resendActionReply(action, payload)
+	case "delete.and.reply":
+		return svc.deleteAndReplyActionReply(id)
+	case "resend":
+		return svc.resendActionReply(id, payload)
+	default:
+		svc.l.Warnf("unknown action: %s", action)
+		return svc.noneInteractionReply(payload)
 	}
 }
 
@@ -120,7 +140,7 @@ func (svc *SlackInteraction) resendActionReply(mentionID string, payload map[str
 			resendView(payload["trigger_id"].(string), mentionID),
 		)
 		if err != nil {
-			svc.l.Errorf("send resend action view failed, err: %+v", err)
+			svc.l.Errorf("send resend action view, err: %+v", err)
 			return
 		}
 	}()
@@ -130,6 +150,40 @@ func (svc *SlackInteraction) resendActionReply(mentionID string, payload map[str
 
 func (svc *SlackInteraction) deleteActionReply() interface{} {
 	svc.l.Debug("execute delete")
+	return struct {
+		DeleteOriginal bool `json:"delete_original"`
+	}{
+		DeleteOriginal: true,
+	}
+}
+
+func (svc *SlackInteraction) deleteAndReplyActionReply(mentionID string) interface{} {
+	svc.l.Debug("execute delete and reply")
+	id, err := strconv.Atoi(mentionID)
+	if err != nil {
+		svc.l.Errorf("convert mention ID, err: %+v", err)
+		return nil
+	}
+
+	record, err := svc.repo.GetMentionRecord(uint64(id))
+	if err != nil {
+		svc.l.Errorf("get mention record, err: %+v", err)
+		return nil
+	}
+
+	text := "已處理，有需要再 Tag 我 ☺️"
+	msg, err := svc.getReplyMessage()
+	if err == nil && len(msg.CloseReplyMessage) != 0 {
+		text = msg.CloseReplyMessage
+	}
+
+	notifier := util.NewSlackNotifier(svc.Token)
+	svc.postMessage(notifier, util.SlackReplyMsg{
+		Text:      text,
+		Channel:   record.Channel,
+		TimeStamp: record.Timestamp,
+	})
+
 	return struct {
 		DeleteOriginal bool `json:"delete_original"`
 	}{
@@ -204,20 +258,20 @@ func (svc *SlackInteraction) viewSubmissionHandler(c echo.Context, payload map[s
 		mentionID := view["private_metadata"].(string)
 		id, err := strconv.Atoi(mentionID)
 		if err != nil {
-			svc.l.Errorf("convert mention ID failed, err: %+v", err)
+			svc.l.Errorf("convert mention ID, err: %+v", err)
 			return
 		}
 
 		record, err := svc.repo.GetMentionRecord(uint64(id))
 		if err != nil {
-			svc.l.Errorf("get mention record failed, err: %+v", err)
+			svc.l.Errorf("get mention record, err: %+v", err)
 			return
 		}
 
 		notifier := util.NewSlackNotifier(svc.Token)
 		msg, err := svc.getMessage(notifier, record.Channel, record.Timestamp)
 		if err != nil {
-			svc.l.Errorf("get message from slack failed, err: %+v", err)
+			svc.l.Errorf("get message from slack, err: %+v", err)
 			return
 		}
 

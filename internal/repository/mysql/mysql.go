@@ -4,6 +4,8 @@ import (
 	"bitopi/internal/model"
 	"fmt"
 	"sort"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -48,6 +50,7 @@ func initMigration(db *gorm.DB) error {
 		&model.BotMessage{},
 		&model.Admin{},
 		&model.Subscriber{},
+		&model.BotSetting{},
 	}
 
 	for _, table := range tables {
@@ -225,6 +228,34 @@ func (dao MysqlDao) UpdateStartDate(service string, t time.Time) error {
 
 		return nil
 	})
+}
+
+func (dao MysqlDao) GetDutyDuration(service string) (time.Duration, error) {
+	var setting model.BotSetting
+	key := strings.ToLower(service) + ".duty.duration"
+	if err := dao.db.Model(&setting).Where("`key` = ?", key).Limit(1).First(&setting).Error; err != nil {
+		return 0, err
+	}
+	d, err := time.ParseDuration(setting.Value)
+	if err != nil {
+		return 0, err
+	}
+
+	return d, nil
+}
+
+func (dao MysqlDao) GetDutyMemberCountPerTime(service string) (int, error) {
+	var setting model.BotSetting
+	key := strings.ToLower(service) + ".duty.member.count.per.time"
+	if err := dao.db.Model(&setting).Where("`key` = ?", key).Limit(1).First(&setting).Error; err != nil {
+		return 0, err
+	}
+	count, err := strconv.Atoi(setting.Value)
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
 }
 
 func (dao MysqlDao) CountMentionRecord(service string) (int64, error) {
