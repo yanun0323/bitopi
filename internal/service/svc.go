@@ -16,12 +16,11 @@ type Service struct {
 	logLevel uint8
 }
 
-func New() (Service, error) {
+func New(ctx context.Context) (Service, error) {
 	repo, err := repository.NewRepo()
 	if err != nil {
 		return Service{}, err
 	}
-	ctx := context.Background()
 	logLevel := uint8(viper.GetUint16("log.level"))
 	return Service{
 		repo:     repo,

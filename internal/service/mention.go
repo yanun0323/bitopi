@@ -237,7 +237,7 @@ func (svc *SlackBot) getReplyMessage() (model.BotMessage, error) {
 func (svc *SlackBot) getStartDate() time.Time {
 	startDate, err := svc.repo.GetStartDate(svc.Name)
 	if err != nil {
-		svc.l.Warn("get start date failed, err: %+v", err)
+		svc.l.Warnf("get start date failed, err: %+v", err)
 		svc.l.Warn("reset start date to database")
 		svc.repo.UpdateStartDate(svc.Name, svc.DefaultStartDate)
 		startDate = svc.DefaultStartDate

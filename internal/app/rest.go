@@ -4,6 +4,7 @@ import (
 	"bitopi/internal/model"
 	"bitopi/internal/service"
 	"bitopi/internal/util"
+	"context"
 	"fmt"
 	"net/http"
 	"time"
@@ -12,16 +13,25 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/robfig/cron/v3"
 	"github.com/spf13/viper"
+	"github.com/yanun0323/pkg/logs"
 )
 
 func Run() {
+	ctx := context.Background()
+	l := logs.Get(ctx)
+	svc, err := service.New(ctx)
+	if err != nil {
+		l.Fatalf("create service, err: %+v", err)
+		return
+	}
+
 	e := echo.New()
 	e.Logger.SetLevel(4)
 
 	rateLimiter := middleware.RateLimiter(middleware.NewRateLimiterMemoryStore(20))
 	m := []echo.MiddlewareFunc{rateLimiter}
 	router := e.Group("", m...)
-	router.GET("/debug", service.DebugHandler, m...)
+	router.GET("/debug", service.DebugHandler)
 	router.GET("/healthz", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, struct {
 			Msg string `json:"message"`
@@ -30,18 +40,14 @@ func Run() {
 		})
 	})
 
-	if err := setupRouters(router); err != nil {
+	if err := setupRouters(router, svc); err != nil {
 		panic(fmt.Sprintf("setup routers failed, err: %+v", err))
 	}
 
 	e.Start(":8001")
 }
 
-func setupRouters(router *echo.Group) error {
-	svc, err := service.New()
-	if err != nil {
-		return err
-	}
+func setupRouters(router *echo.Group, svc service.Service) error {
 
 	if err := setBot(router, svc, service.SlackBotOption{
 		Name:                      "pm",

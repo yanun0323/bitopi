@@ -63,7 +63,7 @@ func (svc *SlackBot) getHomeView(isAdmin bool) (map[string]interface{}, error) {
 
 	rMsg, err := svc.repo.GetReplyMessage(svc.Name)
 	if err != nil {
-		svc.l.Errorf("get reply message failed, err: %+v")
+		svc.l.Errorf("get reply message failed, err: %+v", err)
 		return nil, err
 	}
 
