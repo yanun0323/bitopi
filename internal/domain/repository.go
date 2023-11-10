@@ -2,37 +2,40 @@ package domain
 
 import (
 	"bitopi/internal/model"
+	"context"
 	"time"
 )
 
 type Repository interface {
-	GetMember(service string, userID string) (model.Member, error)
-	UpdateMember(member model.Member) error
+	Tx(ctx context.Context, fn func(context.Context) error) error
 
-	ListMembers(service string) ([]model.Member, error)
-	ResetMembers(service string, member []model.Member) error
+	GetMember(ctx context.Context, service string, userID string) (model.Member, error)
+	UpdateMember(ctx context.Context, member model.Member) error
 
-	ListAllMembers() ([]model.Member, error)
+	ListMembers(ctx context.Context, service string) ([]model.Member, error)
+	ResetMembers(txCtx context.Context, service string, member []model.Member) error
 
-	IsAdmin(service, userID string) (bool, error)
-	ListAdmin(service string) ([]model.Admin, error)
-	AddAdmin(admin model.Admin) error
-	DeleteAdmin(service, userID string) error
+	ListAllMembers(ctx context.Context) ([]model.Member, error)
 
-	GetStartDate(service string) (time.Time, error)
-	UpdateStartDate(service string, t time.Time) error
+	IsAdmin(ctx context.Context, service, userID string) (bool, error)
+	ListAdmin(ctx context.Context, service string) ([]model.Admin, error)
+	AddAdmin(ctx context.Context, admin model.Admin) error
+	DeleteAdmin(ctx context.Context, service, userID string) error
 
-	GetDutyDuration(service string) (time.Duration, error)
-	GetDutyMemberCountPerTime(service string) (int, error)
+	GetStartDate(ctx context.Context, service string) (time.Time, error)
+	UpdateStartDate(txCtx context.Context, service string, t time.Time) error
 
-	CountMentionRecord(service string) (int64, error)
-	GetMentionRecord(id uint64) (model.MentionRecord, error)
-	FindOrCreateMentionRecord(service, channel, timestamp string) (id uint64, found bool, err error)
+	GetDutyDuration(ctx context.Context, service string) (time.Duration, error)
+	GetDutyMemberCountPerTime(ctx context.Context, service string) (int, error)
 
-	GetReplyMessage(service string) (model.BotMessage, error)
-	SetReplyMessage(msg model.BotMessage) error
+	CountMentionRecord(ctx context.Context, service string) (int64, error)
+	GetMentionRecord(ctx context.Context, id uint64) (model.MentionRecord, error)
+	FindOrCreateMentionRecord(txCtx context.Context, service, channel, timestamp string) (id uint64, found bool, err error)
 
-	GetSubscriber() ([]model.Subscriber, error)
-	SetSubscriber(sub model.Subscriber) error
-	DeleteSubscriber(sub model.Subscriber) error
+	GetReplyMessage(ctx context.Context, service string) (model.BotMessage, error)
+	SetReplyMessage(txCtx context.Context, msg model.BotMessage) error
+
+	GetSubscriber(ctx context.Context) ([]model.Subscriber, error)
+	SetSubscriber(ctx context.Context, sub model.Subscriber) error
+	DeleteSubscriber(ctx context.Context, sub model.Subscriber) error
 }

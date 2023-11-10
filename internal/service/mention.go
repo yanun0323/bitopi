@@ -3,6 +3,7 @@ package service
 import (
 	"bitopi/internal/model"
 	"bitopi/internal/util"
+	"context"
 	"encoding/json"
 	"fmt"
 	"strconv"
@@ -167,7 +168,20 @@ func (svc *SlackBot) eventCallbackResponse(c echo.Context) interface{} {
 }
 
 func (svc *SlackBot) recordMention(slackEventApi model.SlackEventAPI) (uint64, bool, error) {
-	return svc.repo.FindOrCreateMentionRecord(svc.Name, slackEventApi.Event.Channel, slackEventApi.Event.EventTimeStamp)
+	var (
+		id    uint64
+		found bool
+		err   error
+	)
+	err = svc.repo.Tx(svc.ctx, func(ctx context.Context) error {
+		id, found, err = svc.repo.FindOrCreateMentionRecord(svc.ctx, svc.Name, slackEventApi.Event.Channel, slackEventApi.Event.EventTimeStamp)
+		return err
+	})
+	if err != nil {
+		return 0, false, err
+	}
+
+	return id, found, err
 }
 
 func (svc *SlackBot) getDutyMember(mention bool, startDate time.Time, dutyCount int, dutyDuration time.Duration) ([]string, []string, error) {
@@ -211,7 +225,7 @@ func (svc *SlackBot) getDutyMember(mention bool, startDate time.Time, dutyCount 
 }
 
 func (svc *SlackBot) getReplyMessage() (model.BotMessage, error) {
-	msg, err := svc.repo.GetReplyMessage(svc.Name)
+	msg, err := svc.repo.GetReplyMessage(svc.ctx, svc.Name)
 	if err != nil {
 		return model.BotMessage{}, err
 	}
@@ -228,25 +242,27 @@ func (svc *SlackBot) getReplyMessage() (model.BotMessage, error) {
 		msg.HomeMentionMessage = msg.MentionMessage
 	}
 
-	if err := svc.repo.SetReplyMessage(msg); err != nil {
+	if err := svc.repo.SetReplyMessage(svc.ctx, msg); err != nil {
 		return model.BotMessage{}, err
 	}
 	return msg, nil
 }
 
 func (svc *SlackBot) getStartDate() time.Time {
-	startDate, err := svc.repo.GetStartDate(svc.Name)
+	startDate, err := svc.repo.GetStartDate(svc.ctx, svc.Name)
 	if err != nil {
-		svc.l.Warnf("get start date failed, err: %+v", err)
+		svc.l.WithError(err).Warn("get start date")
 		svc.l.Warn("reset start date to database")
-		svc.repo.UpdateStartDate(svc.Name, svc.DefaultStartDate)
+		_ = svc.repo.Tx(svc.ctx, func(ctx context.Context) error {
+			return svc.repo.UpdateStartDate(svc.ctx, svc.Name, svc.DefaultStartDate)
+		})
 		startDate = svc.DefaultStartDate
 	}
 	return startDate
 }
 
 func (svc *SlackBot) getDutyDuration() time.Duration {
-	dutyDuration, err := svc.repo.GetDutyDuration(svc.Name)
+	dutyDuration, err := svc.repo.GetDutyDuration(svc.ctx, svc.Name)
 	if err != nil || dutyDuration == 0 {
 		svc.l.Warnf("get duty duration, err: %+v", err)
 		return svc.DefaultDutyDuration
@@ -255,7 +271,7 @@ func (svc *SlackBot) getDutyDuration() time.Duration {
 }
 
 func (svc *SlackBot) getDutyMemberCountPerTime() int {
-	dutyMemberCountPerTime, err := svc.repo.GetDutyMemberCountPerTime(svc.Name)
+	dutyMemberCountPerTime, err := svc.repo.GetDutyMemberCountPerTime(svc.ctx, svc.Name)
 	if err != nil || dutyMemberCountPerTime == 0 {
 		svc.l.Warnf("get duty member count per time, err: %+v", err)
 		return svc.DefaultMemberCountPerTime
@@ -264,13 +280,16 @@ func (svc *SlackBot) getDutyMemberCountPerTime() int {
 }
 
 func (svc *SlackBot) listMember(mention bool) ([]string, error) {
-	members, err := svc.repo.ListMembers(svc.Name)
+	members, err := svc.repo.ListMembers(svc.ctx, svc.Name)
 	if err == nil && len(members) != 0 {
 		return svc.transferMembersToString(members, mention), nil
 	}
-	svc.l.Warnf("list member failed, err: %+v", err)
+	svc.l.WithError(err).Warn("list member")
 	svc.l.Warnf("reset member to database '%s'", svc.Name)
-	if err := svc.repo.ResetMembers(svc.Name, svc.DefaultMemberList); err != nil {
+
+	if err := svc.repo.Tx(svc.ctx, func(ctx context.Context) error {
+		return svc.repo.ResetMembers(svc.ctx, svc.Name, svc.DefaultMemberList)
+	}); err != nil {
 		return nil, err
 	}
 

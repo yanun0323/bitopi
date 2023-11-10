@@ -165,7 +165,7 @@ func (svc *SlackInteraction) deleteAndReplyActionReply(mentionID string) interfa
 		return nil
 	}
 
-	record, err := svc.repo.GetMentionRecord(uint64(id))
+	record, err := svc.repo.GetMentionRecord(svc.ctx, uint64(id))
 	if err != nil {
 		svc.l.Errorf("get mention record, err: %+v", err)
 		return nil
@@ -173,8 +173,8 @@ func (svc *SlackInteraction) deleteAndReplyActionReply(mentionID string) interfa
 
 	text := "已處理，有需要再 Tag 我 ☺️"
 	msg, err := svc.getReplyMessage()
-	if err == nil && len(msg.CloseReplyMessage) != 0 {
-		text = msg.CloseReplyMessage
+	if err == nil && len(msg.DoneReplyMessage) != 0 {
+		text = msg.DoneReplyMessage
 	}
 
 	notifier := util.NewSlackNotifier(svc.Token)
@@ -262,7 +262,7 @@ func (svc *SlackInteraction) viewSubmissionHandler(c echo.Context, payload map[s
 			return
 		}
 
-		record, err := svc.repo.GetMentionRecord(uint64(id))
+		record, err := svc.repo.GetMentionRecord(svc.ctx, uint64(id))
 		if err != nil {
 			svc.l.Errorf("get mention record, err: %+v", err)
 			return

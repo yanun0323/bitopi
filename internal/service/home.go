@@ -9,12 +9,12 @@ import (
 )
 
 func (svc *SlackBot) publishHomeView(notifier util.SlackNotifier) error {
-	subscribers, err := svc.repo.GetSubscriber()
+	subscribers, err := svc.repo.GetSubscriber(svc.ctx)
 	if err != nil {
 		return err
 	}
 
-	members, err := svc.repo.ListAllMembers()
+	members, err := svc.repo.ListAllMembers(svc.ctx)
 	if err != nil {
 		return err
 	}
@@ -49,7 +49,7 @@ func (svc *SlackBot) createHomeViewRequest(view map[string]interface{}, userID s
 }
 
 func (svc *SlackBot) getHomeView(isAdmin bool) (map[string]interface{}, error) {
-	mentionTimes, err := svc.repo.CountMentionRecord(svc.Name)
+	mentionTimes, err := svc.repo.CountMentionRecord(svc.ctx, svc.Name)
 	if err != nil {
 		svc.l.Errorf("count mention record failed, err: %+v", err)
 		return nil, err
@@ -61,9 +61,9 @@ func (svc *SlackBot) getHomeView(isAdmin bool) (map[string]interface{}, error) {
 		return nil, err
 	}
 
-	rMsg, err := svc.repo.GetReplyMessage(svc.Name)
+	rMsg, err := svc.repo.GetReplyMessage(svc.ctx, svc.Name)
 	if err != nil {
-		svc.l.Errorf("get reply message failed, err: %+v", err)
+		svc.l.WithError(err).Errorf("get reply message")
 		return nil, err
 	}
 

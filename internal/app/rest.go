@@ -6,7 +6,9 @@ import (
 	"bitopi/internal/util"
 	"context"
 	"fmt"
-	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -49,6 +51,16 @@ func Run() {
 
 func setupRouters(router *echo.Group, svc service.Service) error {
 
+	go e.Start(":8001")
+
+	/* Graceful shutdown */
+	sigterm := make(chan os.Signal, 1)
+	signal.Notify(sigterm, syscall.SIGINT, syscall.SIGTERM)
+	<-sigterm
+	l.Info("shutdown server")
+}
+
+func setupRouters(router *echo.Group, svc service.Service) error {
 	if err := setBot(router, svc, service.SlackBotOption{
 		Name:                      "pm",
 		Token:                     viper.GetString("pm.token"),
