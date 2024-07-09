@@ -1,5 +1,5 @@
 # build stage
-FROM golang:1.19-alpine AS build
+FROM golang:1.22-alpine AS build
 
 ADD . /go/build
 WORKDIR /go/build
@@ -13,7 +13,7 @@ RUN apk add build-base
 RUN go build -o bitopi main.go
 
 # final stage
-FROM alpine:3.16
+FROM alpine:3.18
 
 # install timezone data
 RUN apk add --no-cache tzdata
