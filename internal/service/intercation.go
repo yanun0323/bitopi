@@ -251,7 +251,7 @@ func resendView(triggerID, data string) util.SlackViewMsg {
 }
 
 // TODO: Add resend user to resend message
-func (svc *SlackInteraction) viewSubmissionHandler(c echo.Context, payload map[string]interface{}) interface{} {
+func (svc *SlackInteraction) viewSubmissionHandler(_ echo.Context, payload map[string]interface{}) interface{} {
 	svc.l.Debug("handle view submission")
 	go func() {
 		view := payload["view"].(map[string]interface{})
@@ -347,8 +347,8 @@ func (svc *SlackInteraction) clearReply(payload map[string]interface{}) interfac
 	}
 
 	data := map[string]interface{}{}
-	json.Unmarshal(res, &data)
-	if err != nil {
+
+	if err := json.Unmarshal(res, &data); err != nil {
 		svc.l.Errorf("parse data failed, err: %+v", err)
 		return svc.noneInteractionReply(payload)
 	}

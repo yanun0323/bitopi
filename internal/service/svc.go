@@ -11,7 +11,7 @@ import (
 
 type Service struct {
 	repo     domain.Repository
-	l        *logs.Logger
+	l        logs.Logger
 	ctx      context.Context
 	logLevel uint8
 }
@@ -24,7 +24,7 @@ func New(ctx context.Context) (Service, error) {
 	logLevel := uint8(viper.GetUint16("log.level"))
 	return Service{
 		repo:     repo,
-		l:        logs.New("bito_pi", logLevel),
+		l:        logs.New(logs.LevelInfo),
 		ctx:      ctx,
 		logLevel: logLevel,
 	}, nil

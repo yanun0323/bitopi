@@ -38,7 +38,7 @@ type SlackBotOption struct {
 }
 
 func NewBot(svc Service, opt SlackBotOption) SlackBot {
-	svc.l = logs.New(opt.Name, svc.logLevel)
+	svc.l = logs.New(logs.LevelError)
 	return SlackBot{
 		Service:        svc,
 		SlackBotOption: opt,
@@ -199,7 +199,7 @@ func (svc *SlackBot) getDutyMember(mention bool, startDate time.Time, dutyCount 
 	}
 
 	dutyWeek := int(dutyDuration / (time.Hour * 24 * 7))
-	passedRound := (int(weekFromStartDate) / dutyWeek)
+	passedRound := int(int(weekFromStartDate) / dutyWeek)
 	index := passedRound * dutyCount % len(member)
 
 	svc.l.Debug("member list: ", member)
